@@ -1,25 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ComputeKERNEL | System v1.0.2</title>
-    <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8">
+  <title>ComputeKERNEL</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="crt-overlay"></div>
-    <div class="scanlines"></div>
-
-    <div id="terminal">
-        <div id="output"></div>
-        <div class="input-line">
-            <span id="prompt"></span>
-            <input type="text" id="cmd-input" autofocus spellcheck="false" autocomplete="off">
-        </div>
+  <div id="terminal">
+    <div id="output"></div>
+    <div id="input-line">
+      <span id="prompt"></span>
+      <input id="input" autofocus autocomplete="off" />
     </div>
+  </div>
 
-    <input type="file" id="file-import" style="display: none;" accept=".ckernel">
+  <div id="overlay" class="hidden"></div>
 
-    <script src="script.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
