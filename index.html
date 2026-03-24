@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -7,407 +6,54 @@
 <title>ComputeKERNEL v1.0.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --green: #00ff41;
-    --green-dim: #00c832;
-    --green-dark: #003b0f;
-    --green-glow: rgba(0,255,65,0.15);
-    --amber: #ffb000;
-    --red: #ff3131;
-    --cyan: #00e5ff;
-    --bg: #020a04;
-    --bg2: #040f06;
-    --border: rgba(0,255,65,0.3);
-    --scanline: rgba(0,0,0,0.4);
-  }
-
-- { margin: 0; padding: 0; box-sizing: border-box; }
-
-html, body {
-width: 100%; height: 100%;
-background: #000;
-overflow: hidden;
-font-family: ‘Share Tech Mono’, monospace;
-}
-
-/* CRT outer shell */
-#crt-shell {
-width: 100vw; height: 100vh;
-background: var(–bg);
-position: relative;
-overflow: hidden;
-display: flex;
-flex-direction: column;
-}
-
-/* Scanlines overlay */
-#crt-shell::before {
-content: ‘’;
-position: fixed;
-inset: 0;
-background: repeating-linear-gradient(
-to bottom,
-transparent 0px,
-transparent 2px,
-var(–scanline) 2px,
-var(–scanline) 4px
-);
-pointer-events: none;
-z-index: 1000;
-animation: scanlineShift 8s linear infinite;
-}
-
-/* Screen edge vignette */
-#crt-shell::after {
-content: ‘’;
-position: fixed;
-inset: 0;
-background: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.85) 100%);
-pointer-events: none;
-z-index: 999;
-}
-
-@keyframes scanlineShift {
-0% { background-position: 0 0; }
-100% { background-position: 0 100px; }
-}
-
-/* Top bar */
-#topbar {
-display: flex;
-align-items: center;
-justify-content: space-between;
-padding: 6px 16px;
-background: var(–bg2);
-border-bottom: 1px solid var(–border);
-flex-shrink: 0;
-z-index: 10;
-}
-
-#topbar .logo {
-font-family: ‘VT323’, monospace;
-font-size: 22px;
-color: var(–green);
-text-shadow: 0 0 10px var(–green), 0 0 20px rgba(0,255,65,0.3);
-letter-spacing: 2px;
-}
-
-#topbar .logo span { color: var(–amber); }
-
-#topbar .stats {
-display: flex;
-gap: 24px;
-font-size: 11px;
-color: var(–green-dim);
-}
-
-#topbar .stats .stat { display: flex; align-items: center; gap: 6px; }
-#topbar .stats .stat-val { color: var(–green); }
-
-/* Main layout */
-#main {
-display: flex;
-flex: 1;
-overflow: hidden;
-}
-
-/* Sidebar */
-#sidebar {
-width: 220px;
-flex-shrink: 0;
-border-right: 1px solid var(–border);
-display: flex;
-flex-direction: column;
-background: var(–bg2);
-padding: 10px 0;
-overflow-y: auto;
-z-index: 10;
-}
-
-.sidebar-section {
-margin-bottom: 16px;
-}
-
-.sidebar-title {
-font-size: 9px;
-letter-spacing: 3px;
-color: var(–green-dim);
-padding: 4px 14px 8px;
-border-bottom: 1px solid rgba(0,255,65,0.1);
-margin-bottom: 4px;
-text-transform: uppercase;
-}
-
-.sidebar-item {
-padding: 3px 14px;
-font-size: 11px;
-color: rgba(0,255,65,0.7);
-cursor: pointer;
-transition: all 0.1s;
-white-space: nowrap;
-overflow: hidden;
-text-overflow: ellipsis;
-}
-
-.sidebar-item:hover { background: var(–green-glow); color: var(–green); }
-.sidebar-item.dir::before { content: ’📁 ’; }
-.sidebar-item.file::before { content: ’📄 ’; }
-.sidebar-item.active { color: var(–amber); }
-
-/* Memory bar */
-.mem-bar-wrap { padding: 4px 14px; }
-.mem-label { font-size: 10px; color: var(–green-dim); margin-bottom: 3px; }
-.mem-bar {
-height: 6px;
-background: rgba(0,255,65,0.1);
-border: 1px solid var(–border);
-border-radius: 0;
-}
-.mem-fill {
-height: 100%;
-background: linear-gradient(90deg, var(–green-dim), var(–green));
-box-shadow: 0 0 6px var(–green);
-transition: width 0.5s;
-}
-.mem-fill.warn { background: linear-gradient(90deg, #a06000, var(–amber)); box-shadow: 0 0 6px var(–amber); }
-.mem-fill.crit { background: linear-gradient(90deg, #800000, var(–red)); box-shadow: 0 0 6px var(–red); }
-
-/* Terminal area */
-#terminal-wrap {
-flex: 1;
-display: flex;
-flex-direction: column;
-overflow: hidden;
-position: relative;
-}
-
-#output {
-flex: 1;
-overflow-y: auto;
-padding: 12px 16px 4px;
-color: var(–green);
-font-size: 13px;
-line-height: 1.6;
-word-break: break-all;
-}
-
-#output::-webkit-scrollbar { width: 6px; }
-#output::-webkit-scrollbar-track { background: var(–bg); }
-#output::-webkit-scrollbar-thumb { background: var(–border); }
-
-.line { margin-bottom: 1px; }
-.line.cmd { color: var(–amber); }
-.line.err { color: var(–red); text-shadow: 0 0 8px rgba(255,49,49,0.5); }
-.line.success { color: #00ff41; }
-.line.info { color: var(–cyan); }
-.line.dim { color: rgba(0,255,65,0.5); }
-.line.white { color: #e0e0e0; }
-.line.header {
-color: var(–amber);
-font-family: ‘VT323’, monospace;
-font-size: 16px;
-text-shadow: 0 0 8px rgba(255,176,0,0.4);
-}
-.line.separator { color: rgba(0,255,65,0.3); }
-.line.bold { font-weight: bold; color: #fff; }
-
-/* ASCII art */
-.ascii {
-font-family: ‘VT323’, monospace;
-font-size: 15px;
-color: var(–green);
-text-shadow: 0 0 10px rgba(0,255,65,0.6);
-white-space: pre;
-line-height: 1.2;
-}
-
-/* Prompt line */
-#prompt-line {
-display: flex;
-align-items: center;
-padding: 8px 16px;
-border-top: 1px solid var(–border);
-background: var(–bg2);
-gap: 8px;
-flex-shrink: 0;
-}
-
-#prompt-ps1 {
-color: var(–green);
-white-space: nowrap;
-font-size: 13px;
-text-shadow: 0 0 8px rgba(0,255,65,0.5);
-flex-shrink: 0;
-}
-
-#prompt-ps1 .user { color: var(–amber); }
-#prompt-ps1 .at { color: rgba(0,255,65,0.5); }
-#prompt-ps1 .host { color: var(–green); }
-#prompt-ps1 .path { color: var(–cyan); }
-#prompt-ps1 .dollar { color: var(–green-dim); }
-
-#input {
-flex: 1;
-background: transparent;
-border: none;
-outline: none;
-color: var(–amber);
-font-family: ‘Share Tech Mono’, monospace;
-font-size: 13px;
-caret-color: var(–green);
-}
-
-#input::placeholder { color: rgba(0,255,65,0.2); }
-
-/* Boot screen */
-#boot-screen {
-position: fixed;
-inset: 0;
-background: #000;
-z-index: 2000;
-display: flex;
-flex-direction: column;
-align-items: center;
-justify-content: center;
-color: var(–green);
-font-family: ‘Share Tech Mono’, monospace;
-}
-
-#boot-logo {
-font-family: ‘VT323’, monospace;
-font-size: clamp(18px, 3vw, 36px);
-color: var(–green);
-text-shadow: 0 0 20px var(–green), 0 0 40px rgba(0,255,65,0.3);
-white-space: pre;
-line-height: 1.1;
-text-align: center;
-margin-bottom: 32px;
-animation: bootGlow 1s ease-in-out infinite alternate;
-}
-
-@keyframes bootGlow {
-from { text-shadow: 0 0 10px var(–green); }
-to { text-shadow: 0 0 30px var(–green), 0 0 60px rgba(0,255,65,0.4); }
-}
-
-#boot-log {
-width: min(600px, 90vw);
-font-size: 12px;
-color: rgba(0,255,65,0.7);
-line-height: 2;
-}
-
-#boot-progress-wrap {
-width: min(600px, 90vw);
-margin-top: 24px;
-}
-
-#boot-progress-label {
-font-size: 11px;
-color: var(–green-dim);
-margin-bottom: 6px;
-}
-
-#boot-progress-bar {
-height: 8px;
-background: rgba(0,255,65,0.1);
-border: 1px solid var(–border);
-overflow: hidden;
-}
-
-#boot-progress-fill {
-height: 100%;
-background: var(–green);
-box-shadow: 0 0 10px var(–green);
-width: 0;
-transition: width 0.2s;
-}
-
-/* Process table */
-.proc-table { font-size: 12px; }
-.proc-table .th { color: var(–amber); display: flex; gap: 0; border-bottom: 1px solid var(–border); padding-bottom: 2px; margin-bottom: 2px; }
-.proc-table .tr { display: flex; color: var(–green); }
-.proc-table .tr:hover { background: var(–green-glow); }
-.proc-table .col-pid { width: 60px; }
-.proc-table .col-name { width: 160px; }
-.proc-table .col-cpu { width: 70px; }
-.proc-table .col-mem { width: 70px; }
-.proc-table .col-state { width: 80px; }
-
-/* Blinking cursor for boot */
-.cursor-blink { animation: blink 0.8s step-end infinite; }
-@keyframes blink { 50% { opacity: 0; } }
-
-/* File viewer */
-.file-content {
-background: rgba(0,255,65,0.04);
-border: 1px solid var(–border);
-padding: 8px;
-margin: 4px 0;
-white-space: pre-wrap;
-font-size: 12px;
-color: #c8ffd0;
-max-height: 200px;
-overflow-y: auto;
-}
-
-/* Import file input */
-#file-import { display: none; }
-
-/* Notification */
-#notif {
-position: fixed;
-bottom: 60px;
-right: 16px;
-background: var(–bg2);
-border: 1px solid var(–green);
-color: var(–green);
-padding: 8px 16px;
-font-size: 12px;
-z-index: 3000;
-display: none;
-box-shadow: 0 0 20px rgba(0,255,65,0.3);
-animation: notifIn 0.2s ease;
-}
-@keyframes notifIn { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform: translateY(0); } }
-</style>
-
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-<!-- Boot screen -->
-
+<!-- ═══════════════════════════════════════════════════════
+     BOOT SCREEN
+══════════════════════════════════════════════════════════ -->
 <div id="boot-screen">
   <div id="boot-logo">
  ██████╗ ██████╗ ███╗   ███╗██████╗ ██╗   ██╗████████╗███████╗
 ██╔════╝██╔═══██╗████╗ ████║██╔══██╗██║   ██║╚══██╔══╝██╔════╝
-██║     ██║   ██║██╔████╔██║██████╔╝██║   ██║   ██║   █████╗  
-██║     ██║   ██║██║╚██╔╝██║██╔═══╝ ██║   ██║   ██║   ██╔══╝  
+██║     ██║   ██║██╔████╔██║██████╔╝██║   ██║   ██║   █████╗
+██║     ██║   ██║██║╚██╔╝██║██╔═══╝ ██║   ██║   ██║   ██╔══╝
 ╚██████╗╚██████╔╝██║ ╚═╝ ██║██║     ╚██████╔╝   ██║   ███████╗
  ╚═════╝ ╚═════╝ ╚═╝     ╚═╝╚═╝      ╚═════╝    ╚═╝   ╚══════╝
-              K E R N E L  v1.0.0  —  x86_64</div>
+              K E R N E L   v 1 . 0 . 0  —  x 8 6 _ 6 4</div>
   <div id="boot-log"></div>
   <div id="boot-progress-wrap">
     <div id="boot-progress-label">INITIALIZING SUBSYSTEMS...</div>
-    <div id="boot-progress-bar"><div id="boot-progress-fill"></div></div>
+    <div id="boot-progress-bar">
+      <div id="boot-progress-fill"></div>
+    </div>
   </div>
 </div>
 
-<!-- Main UI -->
-
+<!-- ═══════════════════════════════════════════════════════
+     MAIN SHELL
+══════════════════════════════════════════════════════════ -->
 <div id="crt-shell" style="display:none;">
+
+  <!-- Top bar -->
   <div id="topbar">
-    <div class="logo">Compute<span>KERNEL</span> <span style="font-size:14px;color:rgba(0,255,65,0.5)">v1.0.0</span></div>
+    <div class="logo">
+      Compute<span class="accent">KERNEL</span>&nbsp;<span class="version">v1.0.0</span>
+    </div>
     <div class="stats">
-      <div class="stat">CPU: <span class="stat-val" id="stat-cpu">0.0%</span></div>
-      <div class="stat">MEM: <span class="stat-val" id="stat-mem">0/0 MB</span></div>
-      <div class="stat">PROC: <span class="stat-val" id="stat-proc">0</span></div>
-      <div class="stat">UPTIME: <span class="stat-val" id="stat-uptime">00:00:00</span></div>
-      <div class="stat">USER: <span class="stat-val" id="stat-user">root</span></div>
+      <div class="stat-pill"><span class="stat-key">CPU</span><span class="stat-val" id="stat-cpu">0.0%</span></div>
+      <div class="stat-pill"><span class="stat-key">MEM</span><span class="stat-val" id="stat-mem">0MB</span></div>
+      <div class="stat-pill"><span class="stat-key">PROC</span><span class="stat-val" id="stat-proc">0</span></div>
+      <div class="stat-pill"><span class="stat-key">UP</span><span class="stat-val" id="stat-uptime">00:00:00</span></div>
+      <div class="stat-pill"><span class="stat-key">USER</span><span class="stat-val" id="stat-user">root</span></div>
     </div>
   </div>
+
+  <!-- Main layout -->
   <div id="main">
+
+    <!-- Sidebar -->
     <div id="sidebar">
       <div class="sidebar-section">
         <div class="sidebar-title">Filesystem</div>
@@ -415,17 +61,19 @@ animation: notifIn 0.2s ease;
       </div>
       <div class="sidebar-section">
         <div class="sidebar-title">Memory</div>
-        <div class="mem-bar-wrap">
-          <div class="mem-label">RAM <span id="ram-pct">0%</span></div>
-          <div class="mem-bar"><div class="mem-fill" id="ram-fill" style="width:0%"></div></div>
-        </div>
-        <div class="mem-bar-wrap">
-          <div class="mem-label">SWAP <span id="swap-pct">0%</span></div>
-          <div class="mem-bar"><div class="mem-fill" id="swap-fill" style="width:0%"></div></div>
-        </div>
-        <div class="mem-bar-wrap">
-          <div class="mem-label">DISK <span id="disk-pct">0%</span></div>
-          <div class="mem-bar"><div class="mem-fill" id="disk-fill" style="width:0%"></div></div>
+        <div class="mem-bar-group">
+          <div class="mem-row">
+            <div class="mem-header"><span class="mem-label">RAM</span><span class="mem-pct" id="ram-pct">0%</span></div>
+            <div class="mem-track"><div class="mem-fill" id="ram-fill"></div></div>
+          </div>
+          <div class="mem-row">
+            <div class="mem-header"><span class="mem-label">SWAP</span><span class="mem-pct" id="swap-pct">0%</span></div>
+            <div class="mem-track"><div class="mem-fill" id="swap-fill"></div></div>
+          </div>
+          <div class="mem-row">
+            <div class="mem-header"><span class="mem-label">DISK</span><span class="mem-pct" id="disk-pct">0%</span></div>
+            <div class="mem-track"><div class="mem-fill" id="disk-fill"></div></div>
+          </div>
         </div>
       </div>
       <div class="sidebar-section">
@@ -434,15 +82,16 @@ animation: notifIn 0.2s ease;
       </div>
     </div>
 
-```
-<div id="terminal-wrap">
-  <div id="output"></div>
-  <div id="prompt-line">
-    <span id="prompt-ps1"></span>
-    <input id="input" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="type 'help' for commands...">
-  </div>
-</div>
-```
+    <!-- Terminal -->
+    <div id="terminal-wrap">
+      <div id="output"></div>
+      <div id="prompt-line">
+        <span id="prompt-ps1"></span>
+        <input id="input" type="text"
+          autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+          placeholder="type 'help' for commands...">
+      </div>
+    </div>
 
   </div>
 </div>
@@ -451,263 +100,192 @@ animation: notifIn 0.2s ease;
 <div id="notif"></div>
 
 <script>
-// =========================================================
-//  ComputeKERNEL — Core Engine
-// =========================================================
+'use strict';
 
 const KERNEL_VERSION = '1.0.0';
-const HOSTNAME = 'computekernel';
+const HOSTNAME       = 'computekernel';
 
-// ---- Kernel State ----
+// ── State ──
 let state = {
-  user: 'root',
-  cwd: '/home/root',
+  user: 'root', cwd: '/home/root',
   env: {
-    USER: 'root',
-    HOME: '/home/root',
-    SHELL: '/bin/ck',
-    PATH: '/bin:/usr/bin:/usr/local/bin',
-    TERM: 'crt-256color',
-    LANG: 'en_US.UTF-8',
-    KERNEL: 'ComputeKERNEL',
-    HOSTNAME: HOSTNAME
+    USER:'root', HOME:'/home/root', SHELL:'/bin/ck',
+    PATH:'/bin:/usr/bin:/usr/local/bin', TERM:'crt-256color',
+    LANG:'en_US.UTF-8', KERNEL:'ComputeKERNEL', HOSTNAME,
   },
-  history: [],
-  historyIndex: -1,
-  startTime: Date.now(),
-  uptime: 0,
-  memTotal: 2048,
-  memUsed: 312,
-  swapTotal: 512,
-  swapUsed: 0,
-  diskTotal: 20480,
-  diskUsed: 1024,
-  nextPid: 100
+  history:[], historyIndex:-1, startTime:Date.now(),
+  memTotal:2048, memUsed:312, swapTotal:512, swapUsed:0,
+  diskTotal:20480, diskUsed:1024, nextPid:100,
 };
 
-// ---- Virtual Filesystem ----
+// ── VFS ──
 let fs = {
-  '/': { type: 'dir', children: ['bin', 'home', 'etc', 'tmp', 'var', 'usr', 'dev', 'proc'] },
-  '/bin': { type: 'dir', children: ['sh', 'ls', 'cat', 'echo', 'pwd'] },
-  '/bin/sh': { type: 'file', content: '#!/bin/ck\n# ComputeKERNEL shell binary', size: 48, created: Date.now(), modified: Date.now() },
-  '/bin/ls': { type: 'file', content: '# ls binary', size: 12, created: Date.now(), modified: Date.now() },
-  '/bin/cat': { type: 'file', content: '# cat binary', size: 12, created: Date.now(), modified: Date.now() },
-  '/bin/echo': { type: 'file', content: '# echo binary', size: 12, created: Date.now(), modified: Date.now() },
-  '/bin/pwd': { type: 'file', content: '# pwd binary', size: 12, created: Date.now(), modified: Date.now() },
-  '/home': { type: 'dir', children: ['root'] },
-  '/home/root': { type: 'dir', children: ['welcome.txt', 'notes', '.bashrc'] },
-  '/home/root/welcome.txt': { type: 'file', content: 'Welcome to ComputeKERNEL v1.0.0!\n\nThis is your virtual kernel environment.\nType "help" to see available commands.\n\nTips:\n  - Use export_save to save your session\n  - Use import_save to restore a session\n  - Use neofetch for system info\n  - All files persist in your save file', size: 245, created: Date.now(), modified: Date.now() },
-  '/home/root/notes': { type: 'dir', children: [] },
-  '/home/root/.bashrc': { type: 'file', content: '# ComputeKERNEL shell config\nexport PS1="\\u@\\h:\\w$ "\nexport EDITOR=vi\nalias ll="ls -la"\nalias cls="clear"', size: 98, created: Date.now(), modified: Date.now() },
-  '/etc': { type: 'dir', children: ['hostname', 'passwd', 'fstab', 'motd'] },
-  '/etc/hostname': { type: 'file', content: HOSTNAME, size: 13, created: Date.now(), modified: Date.now() },
-  '/etc/passwd': { type: 'file', content: 'root:x:0:0:root:/home/root:/bin/ck\nguest:x:1000:1000:Guest:/home/guest:/bin/ck', size: 76, created: Date.now(), modified: Date.now() },
-  '/etc/fstab': { type: 'file', content: '# ComputeKERNEL fstab\n/dev/sda1  /       ext4    defaults  1 1\ntmpfs      /tmp    tmpfs   defaults  0 0', size: 84, created: Date.now(), modified: Date.now() },
-  '/etc/motd': { type: 'file', content: '=============================================\n  Welcome to ComputeKERNEL v1.0.0\n  Type "help" for available commands.\n=============================================', size: 120, created: Date.now(), modified: Date.now() },
-  '/tmp': { type: 'dir', children: [] },
-  '/var': { type: 'dir', children: ['log'] },
-  '/var/log': { type: 'dir', children: ['kernel.log', 'syslog'] },
-  '/var/log/kernel.log': { type: 'file', content: '[0.000000] ComputeKERNEL booting...\n[0.001234] Initializing memory subsystem\n[0.002100] VFS initialized\n[0.003500] Network stack loaded\n[0.005000] Init process started\n[0.006200] Boot complete', size: 180, created: Date.now(), modified: Date.now() },
-  '/var/log/syslog': { type: 'file', content: '-- System boot --', size: 18, created: Date.now(), modified: Date.now() },
-  '/usr': { type: 'dir', children: ['bin', 'lib', 'local'] },
-  '/usr/bin': { type: 'dir', children: ['python3', 'gcc', 'make'] },
-  '/usr/bin/python3': { type: 'file', content: '# python3 stub', size: 14, created: Date.now(), modified: Date.now() },
-  '/usr/bin/gcc': { type: 'file', content: '# gcc stub', size: 10, created: Date.now(), modified: Date.now() },
-  '/usr/bin/make': { type: 'file', content: '# make stub', size: 11, created: Date.now(), modified: Date.now() },
-  '/usr/lib': { type: 'dir', children: [] },
-  '/usr/local': { type: 'dir', children: ['bin'] },
-  '/usr/local/bin': { type: 'dir', children: [] },
-  '/dev': { type: 'dir', children: ['null', 'zero', 'random', 'sda', 'sda1', 'tty0'] },
-  '/dev/null': { type: 'file', content: '', size: 0, created: Date.now(), modified: Date.now() },
-  '/dev/zero': { type: 'file', content: '\x00', size: 1, created: Date.now(), modified: Date.now() },
-  '/dev/random': { type: 'file', content: '(random data)', size: 0, created: Date.now(), modified: Date.now() },
-  '/dev/sda': { type: 'file', content: '(block device)', size: 0, created: Date.now(), modified: Date.now() },
-  '/dev/sda1': { type: 'file', content: '(partition 1)', size: 0, created: Date.now(), modified: Date.now() },
-  '/dev/tty0': { type: 'file', content: '(terminal device)', size: 0, created: Date.now(), modified: Date.now() },
-  '/proc': { type: 'dir', children: ['cpuinfo', 'meminfo', 'version'] },
-  '/proc/cpuinfo': { type: 'file', content: 'processor\t: 0\nvendor_id\t: ComputeKERNEL\nmodel name\t: Virtual CPU @ 3.0GHz\ncpu MHz\t\t: 3000.000\ncache size\t: 8192 KB\ncpu cores\t: 4', size: 140, created: Date.now(), modified: Date.now() },
-  '/proc/meminfo': { type: 'file', content: 'MemTotal:\t2097152 kB\nMemFree:\t1785856 kB\nMemAvailable:\t1786880 kB\nSwapTotal:\t524288 kB\nSwapFree:\t524288 kB', size: 120, created: Date.now(), modified: Date.now() },
-  '/proc/version': { type: 'file', content: `ComputeKERNEL version ${KERNEL_VERSION} (build@computekernel) #1 SMP`, size: 68, created: Date.now(), modified: Date.now() }
+  '/':                   {type:'dir',children:['bin','home','etc','tmp','var','usr','dev','proc'],created:Date.now(),modified:Date.now()},
+  '/bin':                {type:'dir',children:['sh','ls','cat','echo','pwd'],created:Date.now(),modified:Date.now()},
+  '/bin/sh':             {type:'file',content:'#!/bin/ck\n# Shell',size:20,created:Date.now(),modified:Date.now()},
+  '/bin/ls':             {type:'file',content:'# ls',size:4,created:Date.now(),modified:Date.now()},
+  '/bin/cat':            {type:'file',content:'# cat',size:5,created:Date.now(),modified:Date.now()},
+  '/bin/echo':           {type:'file',content:'# echo',size:6,created:Date.now(),modified:Date.now()},
+  '/bin/pwd':            {type:'file',content:'# pwd',size:5,created:Date.now(),modified:Date.now()},
+  '/home':               {type:'dir',children:['root'],created:Date.now(),modified:Date.now()},
+  '/home/root':          {type:'dir',children:['welcome.txt','notes','.bashrc'],created:Date.now(),modified:Date.now()},
+  '/home/root/welcome.txt':{type:'file',content:'Welcome to ComputeKERNEL v1.0.0!\n\nType "help" to see all commands.\n\nTips:\n  neofetch     — system info\n  export_save  — save session to .ckernel file\n  import_save  — restore a session\n  load_autosave — restore browser auto-save',size:210,created:Date.now(),modified:Date.now()},
+  '/home/root/notes':    {type:'dir',children:[],created:Date.now(),modified:Date.now()},
+  '/home/root/.bashrc':  {type:'file',content:'# .bashrc\nexport PS1="\\u@\\h:\\w$ "\nalias ll="ls -la"\nalias cls="clear"',size:72,created:Date.now(),modified:Date.now()},
+  '/etc':                {type:'dir',children:['hostname','passwd','fstab','motd'],created:Date.now(),modified:Date.now()},
+  '/etc/hostname':       {type:'file',content:HOSTNAME,size:13,created:Date.now(),modified:Date.now()},
+  '/etc/passwd':         {type:'file',content:'root:x:0:0:root:/home/root:/bin/ck\nguest:x:1000:1000:Guest:/home/guest:/bin/ck',size:76,created:Date.now(),modified:Date.now()},
+  '/etc/fstab':          {type:'file',content:'# fstab\n/dev/sda1  /    ext4   defaults 1 1\ntmpfs      /tmp tmpfs  defaults 0 0',size:70,created:Date.now(),modified:Date.now()},
+  '/etc/motd':           {type:'file',content:'=============================================\n  Welcome to ComputeKERNEL v1.0.0\n  Type "help" for available commands.\n=============================================',size:126,created:Date.now(),modified:Date.now()},
+  '/tmp':                {type:'dir',children:[],created:Date.now(),modified:Date.now()},
+  '/var':                {type:'dir',children:['log'],created:Date.now(),modified:Date.now()},
+  '/var/log':            {type:'dir',children:['kernel.log','syslog'],created:Date.now(),modified:Date.now()},
+  '/var/log/kernel.log': {type:'file',content:'[    0.000000] ComputeKERNEL booting...\n[    0.001234] Memory: 2048MB\n[    0.002100] VFS initialized\n[    0.003500] Network loaded\n[    0.005000] Init [pid 1]\n[    0.006200] Boot complete',size:185,created:Date.now(),modified:Date.now()},
+  '/var/log/syslog':     {type:'file',content:'-- System boot --',size:18,created:Date.now(),modified:Date.now()},
+  '/usr':                {type:'dir',children:['bin','lib','local'],created:Date.now(),modified:Date.now()},
+  '/usr/bin':            {type:'dir',children:['python3','gcc','make','vim'],created:Date.now(),modified:Date.now()},
+  '/usr/bin/python3':    {type:'file',content:'# python3 stub',size:14,created:Date.now(),modified:Date.now()},
+  '/usr/bin/gcc':        {type:'file',content:'# gcc stub',size:10,created:Date.now(),modified:Date.now()},
+  '/usr/bin/make':       {type:'file',content:'# make stub',size:11,created:Date.now(),modified:Date.now()},
+  '/usr/bin/vim':        {type:'file',content:'# vim stub',size:10,created:Date.now(),modified:Date.now()},
+  '/usr/lib':            {type:'dir',children:[],created:Date.now(),modified:Date.now()},
+  '/usr/local':          {type:'dir',children:['bin'],created:Date.now(),modified:Date.now()},
+  '/usr/local/bin':      {type:'dir',children:[],created:Date.now(),modified:Date.now()},
+  '/dev':                {type:'dir',children:['null','zero','random','sda','sda1','tty0'],created:Date.now(),modified:Date.now()},
+  '/dev/null':           {type:'file',content:'',size:0,created:Date.now(),modified:Date.now()},
+  '/dev/zero':           {type:'file',content:'(zero device)',size:0,created:Date.now(),modified:Date.now()},
+  '/dev/random':         {type:'file',content:'(random device)',size:0,created:Date.now(),modified:Date.now()},
+  '/dev/sda':            {type:'file',content:'(block device)',size:0,created:Date.now(),modified:Date.now()},
+  '/dev/sda1':           {type:'file',content:'(partition 1: ext4)',size:0,created:Date.now(),modified:Date.now()},
+  '/dev/tty0':           {type:'file',content:'(terminal)',size:0,created:Date.now(),modified:Date.now()},
+  '/proc':               {type:'dir',children:['cpuinfo','meminfo','version'],created:Date.now(),modified:Date.now()},
+  '/proc/cpuinfo':       {type:'file',content:'processor\t: 0\nvendor_id\t: ComputeKERNEL\nmodel name\t: Virtual CPU @ 3.0GHz\ncpu MHz\t\t: 3000.000\ncpu cores\t: 4',size:130,created:Date.now(),modified:Date.now()},
+  '/proc/meminfo':       {type:'file',content:'MemTotal:\t2097152 kB\nMemFree:\t1785856 kB\nSwapTotal:\t524288 kB\nSwapFree:\t524288 kB',size:100,created:Date.now(),modified:Date.now()},
+  '/proc/version':       {type:'file',content:`ComputeKERNEL version ${KERNEL_VERSION} #1 SMP x86_64`,size:52,created:Date.now(),modified:Date.now()},
 };
 
-// ---- Process Table ----
 let processes = [
-  { pid: 1, name: 'init', cpu: 0.0, mem: 4.2, state: 'S', user: 'root', started: Date.now() },
-  { pid: 2, name: 'kthreadd', cpu: 0.0, mem: 0.1, state: 'S', user: 'root', started: Date.now() },
-  { pid: 3, name: 'ksoftirqd/0', cpu: 0.1, mem: 0.0, state: 'S', user: 'root', started: Date.now() },
-  { pid: 4, name: 'kworker/0:0H', cpu: 0.0, mem: 0.0, state: 'I', user: 'root', started: Date.now() },
-  { pid: 10, name: 'rcu_sched', cpu: 0.0, mem: 0.0, state: 'S', user: 'root', started: Date.now() },
-  { pid: 50, name: 'sshd', cpu: 0.0, mem: 8.1, state: 'S', user: 'root', started: Date.now() },
-  { pid: 80, name: 'crond', cpu: 0.0, mem: 2.3, state: 'S', user: 'root', started: Date.now() },
-  { pid: 99, name: 'ck-shell', cpu: 0.2, mem: 12.4, state: 'R', user: 'root', started: Date.now() },
+  {pid:1, name:'init',        cpu:0.0, mem:4.2,  state:'S', user:'root', started:Date.now()},
+  {pid:2, name:'kthreadd',    cpu:0.0, mem:0.1,  state:'S', user:'root', started:Date.now()},
+  {pid:3, name:'ksoftirqd/0', cpu:0.1, mem:0.0,  state:'S', user:'root', started:Date.now()},
+  {pid:4, name:'kworker/0:0', cpu:0.0, mem:0.0,  state:'I', user:'root', started:Date.now()},
+  {pid:10,name:'rcu_sched',   cpu:0.0, mem:0.0,  state:'S', user:'root', started:Date.now()},
+  {pid:50,name:'sshd',        cpu:0.0, mem:8.1,  state:'S', user:'root', started:Date.now()},
+  {pid:80,name:'crond',       cpu:0.0, mem:2.3,  state:'S', user:'root', started:Date.now()},
+  {pid:99,name:'ck-shell',    cpu:0.3, mem:12.4, state:'R', user:'root', started:Date.now()},
 ];
-state.nextPid = 100;
 
-// ---- Path helpers ----
-function resolvePath(input) {
-  if (!input || input === '') return state.cwd;
-  if (input.startsWith('/')) return normalizePath(input);
-  return normalizePath(state.cwd + '/' + input);
-}
-
+// ── Path utils ──
 function normalizePath(p) {
-  const parts = p.split('/').filter(Boolean);
   const stack = [];
-  for (const part of parts) {
+  for (const part of p.split('/').filter(Boolean)) {
     if (part === '.') continue;
-    else if (part === '..') { if (stack.length > 0) stack.pop(); }
+    if (part === '..') { if (stack.length) stack.pop(); }
     else stack.push(part);
   }
   return '/' + stack.join('/');
 }
-
-function basename(p) { return p.split('/').filter(Boolean).pop() || '/'; }
-function dirname(p) {
-  const parts = p.split('/').filter(Boolean);
-  parts.pop();
-  return '/' + parts.join('/');
+function resolvePath(input) {
+  if (!input || input === '') return state.cwd;
+  if (input === '~') return state.env.HOME;
+  if (input.startsWith('~/')) return normalizePath(state.env.HOME + '/' + input.slice(2));
+  if (input.startsWith('/')) return normalizePath(input);
+  return normalizePath(state.cwd + '/' + input);
 }
-
+function basename(p) { return p.split('/').filter(Boolean).pop() || '/'; }
+function dirname(p) { const parts = p.split('/').filter(Boolean); parts.pop(); return '/' + parts.join('/') || '/'; }
 function getNode(path) { return fs[normalizePath(path)]; }
 
-function listDir(path) {
-  const node = getNode(path);
-  if (!node || node.type !== 'dir') return null;
-  return node.children.map(c => {
-    const cp = normalizePath(path + '/' + c);
-    return { name: c, path: cp, node: fs[cp] };
-  });
-}
-
-// ---- Output helpers ----
-const out = document.getElementById('output');
-
-function print(text, cls = '') {
-  const el = document.createElement('div');
-  el.className = 'line' + (cls ? ' ' + cls : '');
+// ── Output ──
+const outEl = document.getElementById('output');
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function print(text, cls='') {
+  const el = document.createElement('span');
+  el.className = 'line' + (cls?' '+cls:'');
   el.textContent = text;
-  out.appendChild(el);
+  outEl.appendChild(el);
+  outEl.appendChild(document.createTextNode('\n'));
 }
-
-function printHTML(html, cls = '') {
-  const el = document.createElement('div');
-  el.className = 'line' + (cls ? ' ' + cls : '');
+function printHTML(html, cls='') {
+  const el = document.createElement('span');
+  el.className = 'line' + (cls?' '+cls:'');
   el.innerHTML = html;
-  out.appendChild(el);
+  outEl.appendChild(el);
+  outEl.appendChild(document.createTextNode('\n'));
 }
+function printEmpty() { outEl.appendChild(document.createTextNode('\n')); }
+function scrollDown() { outEl.scrollTop = outEl.scrollHeight; }
 
-function printAscii(text) {
-  const el = document.createElement('pre');
-  el.className = 'ascii';
-  el.textContent = text;
-  out.appendChild(el);
-}
-
-function printEmpty() { print(''); }
-
-function printTable(headers, rows, widths) {
-  const h = headers.map((h, i) => h.padEnd(widths[i])).join(' ');
-  print(h, 'cmd');
-  print(headers.map((_,i) => '─'.repeat(widths[i])).join(' '), 'separator');
-  rows.forEach(row => {
-    print(row.map((c, i) => String(c).padEnd(widths[i])).join(' '));
-  });
-}
-
-function scrollToBottom() {
-  out.scrollTop = out.scrollHeight;
-}
-
-// ---- PS1 ----
 function updatePS1() {
-  const el = document.getElementById('prompt-ps1');
-  const displayCwd = state.cwd.replace('/home/root', '~');
-  el.innerHTML = `<span class="user">${state.user}</span><span class="at">@</span><span class="host">${HOSTNAME}</span>:<span class="path">${displayCwd}</span><span class="dollar">$ </span>`;
+  const ps1 = document.getElementById('prompt-ps1');
+  const cwd  = state.cwd.replace('/home/'+state.user,'~');
+  ps1.innerHTML =
+    `<span class="ps-user">${esc(state.user)}</span>` +
+    `<span class="ps-at">@</span>` +
+    `<span class="ps-host">${esc(HOSTNAME)}</span>` +
+    `<span class="ps-sep">:</span>` +
+    `<span class="ps-path">${esc(cwd)}</span>` +
+    `<span class="ps-dollar">$&nbsp;</span>`;
 }
 
-// ---- Notification ----
-function notify(msg, color = 'var(--green)') {
+function notify(msg, color) {
   const el = document.getElementById('notif');
   el.textContent = msg;
-  el.style.color = color;
-  el.style.display = 'block';
+  el.style.color = color || 'var(--green)';
+  el.style.borderColor = color || 'var(--green)';
+  el.className = 'show';
   clearTimeout(el._t);
-  el._t = setTimeout(() => { el.style.display = 'none'; }, 3000);
+  el._t = setTimeout(() => { el.className = ''; }, 3000);
 }
 
-// ---- Command history ----
 function pushHistory(cmd) {
-  if (cmd && state.history[state.history.length - 1] !== cmd) {
-    state.history.push(cmd);
-  }
+  if (cmd && state.history[state.history.length-1] !== cmd) state.history.push(cmd);
   state.historyIndex = state.history.length;
 }
 
-// ============================================================
-//  Commands
-// ============================================================
+function getCpuTotal() { return processes.reduce((s,p) => s+p.cpu, 0); }
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes+'B';
+  if (bytes < 1048576) return (bytes/1024).toFixed(1)+'K';
+  if (bytes < 1073741824) return (bytes/1048576).toFixed(1)+'M';
+  return (bytes/1073741824).toFixed(1)+'G';
+}
+
+function printTable(headers, rows, widths) {
+  print(headers.map((h,i)=>h.padEnd(widths[i])).join('  '),'cmd');
+  print(widths.map(w=>'─'.repeat(w)).join('  '),'separator');
+  rows.forEach(row => print(row.map((c,i)=>String(c??'').padEnd(widths[i])).join('  ')));
+}
+
+// ── Commands ──
 const commands = {};
 
-commands.help = function(args) {
+commands.help = function() {
   printEmpty();
-  print('╔══════════════════════════════════════════════════════════╗', 'separator');
-  print('║          ComputeKERNEL — Command Reference               ║', 'header');
-  print('╚══════════════════════════════════════════════════════════╝', 'separator');
+  print('╔══════════════════════════════════════════════════╗','separator');
+  print('║     ComputeKERNEL — Command Reference            ║','header');
+  print('╚══════════════════════════════════════════════════╝','separator');
   printEmpty();
-  const cmds = [
-    ['FILESYSTEM', null],
-    ['ls [path]', 'List directory contents'],
-    ['cd [path]', 'Change directory'],
-    ['pwd', 'Print working directory'],
-    ['mkdir <name>', 'Create directory'],
-    ['rmdir <name>', 'Remove directory'],
-    ['touch <name>', 'Create empty file'],
-    ['rm <name>', 'Remove file'],
-    ['cat <file>', 'Display file contents'],
-    ['write <file> <text>', 'Write text to file'],
-    ['cp <src> <dst>', 'Copy file'],
-    ['mv <src> <dst>', 'Move/rename file'],
-    ['find <name>', 'Find files by name'],
-    ['du [path]', 'Disk usage'],
-    ['df', 'Disk filesystem info'],
-    ['', null],
-    ['PROCESS', null],
-    ['ps', 'List processes'],
-    ['top', 'Interactive process view'],
-    ['kill <pid>', 'Terminate process'],
-    ['run <name>', 'Start a virtual process'],
-    ['', null],
-    ['SYSTEM', null],
-    ['uname [-a]', 'System information'],
-    ['whoami', 'Current user'],
-    ['id', 'User/group IDs'],
-    ['date', 'Current date and time'],
-    ['uptime', 'System uptime'],
-    ['free', 'Memory usage'],
-    ['env', 'Environment variables'],
-    ['export <K>=<V>', 'Set environment variable'],
-    ['unset <K>', 'Unset environment variable'],
-    ['echo <text>', 'Print text'],
-    ['clear', 'Clear terminal'],
-    ['history', 'Command history'],
-    ['neofetch', 'System info (fancy)'],
-    ['dmesg', 'Kernel ring buffer'],
-    ['lscpu', 'CPU information'],
-    ['', null],
-    ['SESSION', null],
-    ['export_save', 'Save session to .ckernel file'],
-    ['import_save', 'Load session from .ckernel file'],
-    ['whoami', 'Display current user'],
-    ['su <user>', 'Switch user (root/guest)'],
-    ['useradd <name>', 'Add a new user'],
+  const rows = [
+    [null,'FILESYSTEM'],['ls [path]','List directory'],['cd [path]','Change directory'],
+    ['pwd','Print cwd'],['mkdir <n>','Create directory'],['rmdir <n>','Remove directory'],
+    ['touch <n>','Create file'],['rm <n>','Remove file'],['cat <file>','Show file contents'],
+    ['write <file> <t>','Write text to file'],['cp <src> <dst>','Copy file'],
+    ['mv <src> <dst>','Move/rename'],['find <pat>','Find files'],['du [path]','Disk usage'],['df','Filesystem info'],
+    [null,'PROCESS'],['ps','List processes'],['top','Sorted process view'],
+    ['kill <pid>','Kill process'],['run <n>','Spawn process'],
+    [null,'SYSTEM'],['uname [-a]','System info'],['whoami','Current user'],
+    ['id','UIDs/GIDs'],['date','Date/time'],['uptime','System uptime'],
+    ['free','Memory usage'],['env','Environment vars'],['export K=V','Set env var'],
+    ['echo <text>','Print text'],['clear','Clear terminal'],['history','Command history'],
+    ['neofetch','Fancy sysinfo'],['dmesg','Kernel log'],['lscpu','CPU info'],
+    [null,'USER'],['su <user>','Switch user'],['useradd <n>','Add user'],
+    [null,'SESSION'],['export_save','Save .ckernel file'],['import_save','Load .ckernel file'],
+    ['load_autosave','Restore browser save'],['autosave','Check browser save'],
   ];
-  cmds.forEach(([cmd, desc]) => {
-    if (desc === null) {
-      if (cmd === '') { printEmpty(); return; }
-      print('  ── ' + cmd + ' ──', 'amber-text');
-      return;
-    }
-    printHTML(`  <span style="color:var(--amber);display:inline-block;width:22ch">${cmd}</span><span style="color:rgba(0,255,65,0.7)">${desc}</span>`);
+  rows.forEach(([cmd,desc]) => {
+    if (cmd===null) { printEmpty(); print('  ▸ '+desc,'info'); }
+    else printHTML(`  <span style="color:var(--amber);display:inline-block;width:20ch">${esc(cmd)}</span><span style="color:rgba(0,255,65,0.6)">${esc(desc)}</span>`);
   });
   printEmpty();
 };
@@ -715,35 +293,26 @@ commands.help = function(args) {
 commands.ls = function(args) {
   const target = args[0] ? resolvePath(args[0]) : state.cwd;
   const node = getNode(target);
-  if (!node) { print(`ls: cannot access '${args[0]}': No such file or directory`, 'err'); return; }
-  if (node.type === 'file') { print(basename(target)); return; }
-  const children = listDir(target);
-  if (!children || children.length === 0) { return; }
+  if (!node) { print(`ls: '${args[0]}': No such file or directory`,'err'); return; }
+  if (node.type==='file') { print(basename(target)); return; }
+  if (!node.children||!node.children.length) return;
   printEmpty();
-  const cols = Math.max(1, Math.floor(60 / 20));
-  let row = '';
-  let count = 0;
-  children.forEach(({ name, node: n }) => {
-    const isDir = n && n.type === 'dir';
-    const color = isDir ? 'var(--cyan)' : 'var(--green)';
-    const suffix = isDir ? '/' : '';
-    const padded = (name + suffix).padEnd(22);
-    row += `<span style="color:${color}">${padded}</span>`;
-    count++;
-    if (count % 3 === 0) {
-      printHTML(row);
-      row = '';
-    }
+  let row='';
+  node.children.forEach((name,i) => {
+    const cp=normalizePath(target+'/'+name), cn=fs[cp];
+    const isDir=cn&&cn.type==='dir';
+    row+=`<span style="color:${isDir?'var(--cyan)':'var(--green)'}">${esc((name+(isDir?'/':'')).padEnd(22))}</span>`;
+    if((i+1)%3===0){printHTML(row);row='';}
   });
-  if (row) printHTML(row);
+  if(row)printHTML(row);
   printEmpty();
 };
 
 commands.cd = function(args) {
-  const target = args[0] === undefined ? state.env.HOME : resolvePath(args[0]);
+  const target = resolvePath(args[0]===undefined?state.env.HOME:args[0]);
   const node = getNode(target);
-  if (!node) { print(`cd: ${args[0]}: No such file or directory`, 'err'); return; }
-  if (node.type !== 'dir') { print(`cd: ${args[0]}: Not a directory`, 'err'); return; }
+  if (!node) { print(`cd: '${args[0]}': No such file or directory`,'err'); return; }
+  if (node.type!=='dir') { print(`cd: '${args[0]}': Not a directory`,'err'); return; }
   state.cwd = target;
   updatePS1();
 };
@@ -751,930 +320,536 @@ commands.cd = function(args) {
 commands.pwd = function() { print(state.cwd); };
 
 commands.mkdir = function(args) {
-  if (!args[0]) { print('mkdir: missing operand', 'err'); return; }
-  const target = resolvePath(args[0]);
-  if (getNode(target)) { print(`mkdir: cannot create directory '${args[0]}': File exists`, 'err'); return; }
-  const parent = dirname(target);
-  const parentNode = getNode(parent);
-  if (!parentNode || parentNode.type !== 'dir') { print(`mkdir: cannot create directory '${args[0]}': No such file or directory`, 'err'); return; }
-  fs[target] = { type: 'dir', children: [], created: Date.now(), modified: Date.now() };
-  parentNode.children.push(basename(target));
-  updateDiskUsage(512);
+  if (!args[0]) { print('mkdir: missing operand','err'); return; }
+  const target=resolvePath(args[0]);
+  if (getNode(target)) { print(`mkdir: '${args[0]}': File exists`,'err'); return; }
+  const par=dirname(target), parNode=getNode(par);
+  if (!parNode||parNode.type!=='dir') { print(`mkdir: '${args[0]}': No such directory`,'err'); return; }
+  fs[target]={type:'dir',children:[],created:Date.now(),modified:Date.now()};
+  parNode.children.push(basename(target));
+  state.diskUsed=Math.min(state.diskTotal,state.diskUsed+1);
   updateFSTree();
 };
 
 commands.rmdir = function(args) {
-  if (!args[0]) { print('rmdir: missing operand', 'err'); return; }
-  const target = resolvePath(args[0]);
-  const node = getNode(target);
-  if (!node) { print(`rmdir: failed to remove '${args[0]}': No such file or directory`, 'err'); return; }
-  if (node.type !== 'dir') { print(`rmdir: failed to remove '${args[0]}': Not a directory`, 'err'); return; }
-  if (node.children.length > 0) { print(`rmdir: failed to remove '${args[0]}': Directory not empty`, 'err'); return; }
-  const parent = dirname(target);
-  const name = basename(target);
-  fs[parent].children = fs[parent].children.filter(c => c !== name);
+  if (!args[0]) { print('rmdir: missing operand','err'); return; }
+  const target=resolvePath(args[0]), node=getNode(target);
+  if (!node) { print(`rmdir: '${args[0]}': No such file or directory`,'err'); return; }
+  if (node.type!=='dir') { print(`rmdir: '${args[0]}': Not a directory`,'err'); return; }
+  if (node.children.length) { print(`rmdir: '${args[0]}': Directory not empty`,'err'); return; }
+  fs[dirname(target)].children=fs[dirname(target)].children.filter(c=>c!==basename(target));
   delete fs[target];
-  updateDiskUsage(-512);
   updateFSTree();
 };
 
 commands.touch = function(args) {
-  if (!args[0]) { print('touch: missing file operand', 'err'); return; }
-  const target = resolvePath(args[0]);
-  if (getNode(target)) {
-    fs[target].modified = Date.now();
-    return;
-  }
-  const parent = dirname(target);
-  const parentNode = getNode(parent);
-  if (!parentNode || parentNode.type !== 'dir') { print(`touch: cannot touch '${args[0]}': No such file or directory`, 'err'); return; }
-  fs[target] = { type: 'file', content: '', size: 0, created: Date.now(), modified: Date.now() };
-  parentNode.children.push(basename(target));
-  updateDiskUsage(0);
+  if (!args[0]) { print('touch: missing operand','err'); return; }
+  const target=resolvePath(args[0]);
+  if (getNode(target)) { getNode(target).modified=Date.now(); return; }
+  const par=dirname(target), parNode=getNode(par);
+  if (!parNode||parNode.type!=='dir') { print(`touch: '${args[0]}': No such directory`,'err'); return; }
+  fs[target]={type:'file',content:'',size:0,created:Date.now(),modified:Date.now()};
+  parNode.children.push(basename(target));
   updateFSTree();
 };
 
 commands.rm = function(args) {
-  if (!args[0]) { print('rm: missing operand', 'err'); return; }
-  const target = resolvePath(args[0]);
-  const node = getNode(target);
-  if (!node) { print(`rm: cannot remove '${args[0]}': No such file or directory`, 'err'); return; }
-  if (node.type === 'dir') { print(`rm: cannot remove '${args[0]}': Is a directory (use rmdir)`, 'err'); return; }
-  const parent = dirname(target);
-  const name = basename(target);
-  fs[parent].children = fs[parent].children.filter(c => c !== name);
-  updateDiskUsage(-node.size);
+  if (!args[0]) { print('rm: missing operand','err'); return; }
+  const target=resolvePath(args[0]), node=getNode(target);
+  if (!node) { print(`rm: '${args[0]}': No such file or directory`,'err'); return; }
+  if (node.type==='dir') { print(`rm: '${args[0]}': Is a directory`,'err'); return; }
+  fs[dirname(target)].children=fs[dirname(target)].children.filter(c=>c!==basename(target));
+  state.diskUsed=Math.max(0,state.diskUsed-Math.ceil((node.size||0)/1024));
   delete fs[target];
   updateFSTree();
 };
 
 commands.cat = function(args) {
-  if (!args[0]) { print('cat: missing file operand', 'err'); return; }
-  const target = resolvePath(args[0]);
-  const node = getNode(target);
-  if (!node) { print(`cat: ${args[0]}: No such file or directory`, 'err'); return; }
-  if (node.type === 'dir') { print(`cat: ${args[0]}: Is a directory`, 'err'); return; }
+  if (!args[0]) { print('cat: missing operand','err'); return; }
+  const target=resolvePath(args[0]), node=getNode(target);
+  if (!node) { print(`cat: '${args[0]}': No such file or directory`,'err'); return; }
+  if (node.type==='dir') { print(`cat: '${args[0]}': Is a directory`,'err'); return; }
   printEmpty();
-  const content = node.content || '';
-  content.split('\n').forEach(line => print(line, 'white'));
+  (node.content||'').split('\n').forEach(l=>print(l,'white'));
   printEmpty();
 };
 
 commands.write = function(args) {
-  if (!args[0]) { print('write: usage: write <file> <content>', 'err'); return; }
-  const target = resolvePath(args[0]);
-  const content = args.slice(1).join(' ');
-  const node = getNode(target);
+  if (!args[0]) { print('write: usage: write <file> <content>','err'); return; }
+  const target=resolvePath(args[0]), content=args.slice(1).join(' ');
+  let node=getNode(target);
   if (!node) {
-    const parent = dirname(target);
-    const parentNode = getNode(parent);
-    if (!parentNode || parentNode.type !== 'dir') { print(`write: ${args[0]}: No such directory`, 'err'); return; }
-    fs[target] = { type: 'file', content: content, size: content.length, created: Date.now(), modified: Date.now() };
-    parentNode.children.push(basename(target));
-  } else {
-    if (node.type === 'dir') { print(`write: ${args[0]}: Is a directory`, 'err'); return; }
-    node.content = content;
-    node.size = content.length;
-    node.modified = Date.now();
+    const par=dirname(target), parNode=getNode(par);
+    if (!parNode||parNode.type!=='dir') { print(`write: '${args[0]}': No such directory`,'err'); return; }
+    fs[target]={type:'file',content:'',size:0,created:Date.now(),modified:Date.now()};
+    parNode.children.push(basename(target));
+    node=fs[target];
   }
-  updateDiskUsage(content.length);
+  if (node.type==='dir') { print(`write: '${args[0]}': Is a directory`,'err'); return; }
+  node.content=content; node.size=content.length; node.modified=Date.now();
+  state.diskUsed=Math.min(state.diskTotal,state.diskUsed+Math.ceil(content.length/1024));
   updateFSTree();
-  print(`Written ${content.length} bytes to ${args[0]}`, 'success');
+  print(`${content.length} bytes written to ${args[0]}`,'success');
 };
 
 commands.cp = function(args) {
-  if (!args[0] || !args[1]) { print('cp: usage: cp <src> <dst>', 'err'); return; }
-  const src = resolvePath(args[0]);
-  const srcNode = getNode(src);
-  if (!srcNode) { print(`cp: '${args[0]}': No such file or directory`, 'err'); return; }
-  if (srcNode.type === 'dir') { print(`cp: '${args[0]}': Is a directory`, 'err'); return; }
-  let dst = resolvePath(args[1]);
-  const dstNode = getNode(dst);
-  if (dstNode && dstNode.type === 'dir') { dst = normalizePath(dst + '/' + basename(src)); }
-  const dstParent = dirname(dst);
-  const dstParentNode = getNode(dstParent);
-  if (!dstParentNode || dstParentNode.type !== 'dir') { print(`cp: '${args[1]}': No such directory`, 'err'); return; }
-  fs[dst] = { ...srcNode, created: Date.now(), modified: Date.now() };
-  if (!dstParentNode.children.includes(basename(dst))) dstParentNode.children.push(basename(dst));
-  updateDiskUsage(srcNode.size);
+  if (!args[0]||!args[1]) { print('cp: usage: cp <src> <dst>','err'); return; }
+  const src=resolvePath(args[0]), srcNode=getNode(src);
+  if (!srcNode) { print(`cp: '${args[0]}': No such file or directory`,'err'); return; }
+  if (srcNode.type==='dir') { print(`cp: '${args[0]}': Is a directory`,'err'); return; }
+  let dst=resolvePath(args[1]);
+  const dstNode=getNode(dst);
+  if (dstNode&&dstNode.type==='dir') dst=normalizePath(dst+'/'+basename(src));
+  const dstPar=dirname(dst), dstParNode=getNode(dstPar);
+  if (!dstParNode||dstParNode.type!=='dir') { print(`cp: '${args[1]}': No such directory`,'err'); return; }
+  fs[dst]={...srcNode,created:Date.now(),modified:Date.now()};
+  if (!dstParNode.children.includes(basename(dst))) dstParNode.children.push(basename(dst));
   updateFSTree();
-  print(`'${args[0]}' -> '${args[1]}'`, 'success');
+  print(`'${args[0]}' -> '${args[1]}'`,'success');
 };
 
 commands.mv = function(args) {
-  if (!args[0] || !args[1]) { print('mv: usage: mv <src> <dst>', 'err'); return; }
-  const src = resolvePath(args[0]);
-  const srcNode = getNode(src);
-  if (!srcNode) { print(`mv: '${args[0]}': No such file or directory`, 'err'); return; }
-  let dst = resolvePath(args[1]);
-  const dstNode = getNode(dst);
-  if (dstNode && dstNode.type === 'dir') { dst = normalizePath(dst + '/' + basename(src)); }
-  const dstParent = dirname(dst);
-  const dstParentNode = getNode(dstParent);
-  if (!dstParentNode || dstParentNode.type !== 'dir') { print(`mv: '${args[1]}': No such directory`, 'err'); return; }
-  fs[dst] = { ...srcNode, modified: Date.now() };
-  if (!dstParentNode.children.includes(basename(dst))) dstParentNode.children.push(basename(dst));
-  const srcParent = dirname(src);
-  const srcName = basename(src);
-  fs[srcParent].children = fs[srcParent].children.filter(c => c !== srcName);
+  if (!args[0]||!args[1]) { print('mv: usage: mv <src> <dst>','err'); return; }
+  const src=resolvePath(args[0]), srcNode=getNode(src);
+  if (!srcNode) { print(`mv: '${args[0]}': No such file or directory`,'err'); return; }
+  let dst=resolvePath(args[1]);
+  const dstNode=getNode(dst);
+  if (dstNode&&dstNode.type==='dir') dst=normalizePath(dst+'/'+basename(src));
+  const dstPar=dirname(dst), dstParNode=getNode(dstPar);
+  if (!dstParNode||dstParNode.type!=='dir') { print(`mv: '${args[1]}': No such directory`,'err'); return; }
+  fs[dst]={...srcNode,modified:Date.now()};
+  if (!dstParNode.children.includes(basename(dst))) dstParNode.children.push(basename(dst));
+  fs[dirname(src)].children=fs[dirname(src)].children.filter(c=>c!==basename(src));
   delete fs[src];
   updateFSTree();
-  print(`'${args[0]}' -> '${args[1]}'`, 'success');
+  print(`'${args[0]}' -> '${args[1]}'`,'success');
 };
 
 commands.find = function(args) {
-  if (!args[0]) { print('find: missing pattern', 'err'); return; }
-  const pattern = args[0].toLowerCase();
-  const results = Object.keys(fs).filter(p => basename(p).toLowerCase().includes(pattern));
-  if (results.length === 0) { print('(no results)', 'dim'); return; }
-  results.forEach(p => print(p));
+  if (!args[0]) { print('find: missing pattern','err'); return; }
+  const pat=args[0].toLowerCase();
+  const res=Object.keys(fs).filter(p=>basename(p).toLowerCase().includes(pat)).sort();
+  if (!res.length) { print('(no results)','dim'); return; }
+  res.forEach(p=>print(p));
 };
 
 commands.du = function(args) {
-  const target = args[0] ? resolvePath(args[0]) : state.cwd;
-  const node = getNode(target);
-  if (!node) { print(`du: ${args[0]}: No such file or directory`, 'err'); return; }
-  if (node.type === 'file') { print(`${node.size}\t${target}`); return; }
-  let total = 0;
-  function walk(path) {
-    const n = fs[path];
-    if (!n) return;
-    if (n.type === 'file') { total += n.size || 0; }
-    else if (n.type === 'dir') { n.children.forEach(c => walk(normalizePath(path + '/' + c))); }
-  }
-  walk(target);
+  const target=resolvePath(args[0]||'.'), node=getNode(target);
+  if (!node) { print(`du: '${args[0]}': No such file or directory`,'err'); return; }
+  if (node.type==='file') { print(`${node.size||0}\t${target}`); return; }
+  let total=0;
+  (function walk(path){const n=fs[path];if(!n)return;if(n.type==='file')total+=n.size||0;else n.children.forEach(c=>walk(normalizePath(path+'/'+c)));  })(target);
   print(`${total}\t${target}`);
 };
 
 commands.df = function() {
   printEmpty();
-  printTable(['Filesystem', 'Size', 'Used', 'Available', 'Use%', 'Mounted on'],
-    [['/dev/sda1', formatSize(state.diskTotal*1024), formatSize(state.diskUsed*1024), formatSize((state.diskTotal-state.diskUsed)*1024), Math.round(state.diskUsed/state.diskTotal*100)+'%', '/'],
-     ['tmpfs', '256M', '0', '256M', '0%', '/tmp'],
-     ['devtmpfs', '256M', '0', '256M', '0%', '/dev']],
-    [15, 8, 8, 10, 5, 12]);
+  printTable(['Filesystem','Size','Used','Avail','Use%','Mounted'],
+    [['/dev/sda1',formatSize(state.diskTotal*1024),formatSize(state.diskUsed*1024),
+      formatSize((state.diskTotal-state.diskUsed)*1024),Math.round(state.diskUsed/state.diskTotal*100)+'%','/'],
+     ['tmpfs','256M','0','256M','0%','/tmp'],['devtmpfs','256M','0','256M','0%','/dev']],
+    [14,7,7,7,5,10]);
   printEmpty();
 };
 
 commands.ps = function() {
   printEmpty();
-  printTable(['PID', 'PPID', 'USER', 'STAT', 'CPU%', 'MEM%', 'COMMAND'],
-    processes.map(p => [p.pid, 1, p.user, p.state, p.cpu.toFixed(1), p.mem.toFixed(1), p.name]),
-    [6, 6, 8, 5, 6, 6, 20]);
+  printTable(['PID','USER','STAT','%CPU','%MEM','COMMAND'],
+    processes.map(p=>[p.pid,p.user,p.state,p.cpu.toFixed(1),p.mem.toFixed(1),p.name]),
+    [6,8,5,6,6,20]);
   printEmpty();
 };
 
 commands.top = function() {
   printEmpty();
-  print('═══ ComputeKERNEL top ═══', 'header');
-  print(`Tasks: ${processes.length} total, 1 running, ${processes.length-1} sleeping`, 'info');
-  print(`CPU: ${getCpuAvg().toFixed(1)}% us  0.0% sy  0.0% ni  ${(100-getCpuAvg()).toFixed(1)}% id`, 'info');
-  print(`Mem: ${state.memTotal}M total, ${state.memUsed}M used, ${state.memTotal-state.memUsed}M free`, 'info');
+  print('─── ComputeKERNEL top ───','header');
+  print(`Tasks: ${processes.length} total  CPU: ${getCpuTotal().toFixed(1)}%  Mem: ${state.memUsed}/${state.memTotal}MB`,'info');
   printEmpty();
-  printTable(['PID', 'USER', 'STAT', '%CPU', '%MEM', 'COMMAND'],
-    [...processes].sort((a,b) => b.cpu - a.cpu).slice(0, 12).map(p => [p.pid, p.user, p.state, p.cpu.toFixed(1), p.mem.toFixed(1), p.name]),
-    [6, 8, 5, 6, 6, 20]);
+  printTable(['PID','USER','STAT','%CPU','%MEM','COMMAND'],
+    [...processes].sort((a,b)=>b.cpu-a.cpu).slice(0,14).map(p=>[p.pid,p.user,p.state,p.cpu.toFixed(1),p.mem.toFixed(1),p.name]),
+    [6,8,5,6,6,20]);
   printEmpty();
 };
 
 commands.kill = function(args) {
-  if (!args[0]) { print('kill: usage: kill <pid>', 'err'); return; }
-  const pid = parseInt(args[0]);
-  if (isNaN(pid)) { print(`kill: invalid pid: ${args[0]}`, 'err'); return; }
-  if (pid <= 10) { print(`kill: (${pid}): Operation not permitted`, 'err'); return; }
-  const idx = processes.findIndex(p => p.pid === pid);
-  if (idx === -1) { print(`kill: (${pid}): No such process`, 'err'); return; }
-  const name = processes[idx].name;
-  processes.splice(idx, 1);
-  print(`[${pid}] Terminated: ${name}`, 'success');
-  state.memUsed = Math.max(100, state.memUsed - Math.floor(Math.random()*20+5));
+  if (!args[0]) { print('kill: usage: kill <pid>','err'); return; }
+  const pid=parseInt(args[0]);
+  if (isNaN(pid)) { print(`kill: invalid pid: ${args[0]}`,'err'); return; }
+  if (pid<=10)    { print(`kill: (${pid}): Operation not permitted`,'err'); return; }
+  const idx=processes.findIndex(p=>p.pid===pid);
+  if (idx===-1)   { print(`kill: (${pid}): No such process`,'err'); return; }
+  const name=processes[idx].name;
+  processes.splice(idx,1);
+  state.memUsed=Math.max(80,state.memUsed-Math.floor(Math.random()*20+4));
+  print(`[${pid}] Terminated  ${name}`,'success');
   updateSidebar();
 };
 
 commands.run = function(args) {
-  const name = args[0] || 'process';
-  const pid = state.nextPid++;
-  const memUsage = Math.random() * 20 + 2;
-  const cpuUsage = Math.random() * 5;
-  processes.push({ pid, name, cpu: cpuUsage, mem: memUsage, state: 'S', user: state.user, started: Date.now() });
-  state.memUsed = Math.min(state.memTotal - 50, state.memUsed + Math.floor(memUsage));
-  print(`[${pid}] Started: ${name}  (mem: ${memUsage.toFixed(1)}MB, cpu: ${cpuUsage.toFixed(1)}%)`, 'success');
+  const name=args[0]||'process', pid=state.nextPid++;
+  const mem=+(Math.random()*20+2).toFixed(1), cpu=+(Math.random()*5).toFixed(1);
+  processes.push({pid,name,cpu,mem,state:'S',user:state.user,started:Date.now()});
+  state.memUsed=Math.min(state.memTotal-50,state.memUsed+Math.floor(mem));
+  print(`[${pid}] Started  ${name}   cpu:${cpu}%  mem:${mem}MB`,'success');
   updateSidebar();
 };
 
 commands.uname = function(args) {
-  if (args.includes('-a') || args.includes('--all')) {
-    print(`ComputeKERNEL ${HOSTNAME} ${KERNEL_VERSION} #1 SMP x86_64 GNU/Linux`);
-  } else {
-    print('ComputeKERNEL');
-  }
+  print(args.includes('-a')||args.includes('--all')
+    ? `ComputeKERNEL ${HOSTNAME} ${KERNEL_VERSION} #1 SMP x86_64 GNU/Linux`
+    : 'ComputeKERNEL');
 };
-
 commands.whoami = function() { print(state.user); };
-
 commands.id = function() {
-  const uid = state.user === 'root' ? 0 : 1000;
+  const uid=state.user==='root'?0:1000;
   print(`uid=${uid}(${state.user}) gid=${uid}(${state.user}) groups=${uid}(${state.user})`);
 };
-
 commands.date = function() { print(new Date().toString()); };
-
 commands.uptime = function() {
-  const s = Math.floor((Date.now() - state.startTime) / 1000);
-  const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
-  const load = getCpuAvg().toFixed(2);
-  print(` ${new Date().toTimeString().split(' ')[0]} up ${h}:${String(m).padStart(2,'0')}, 1 user, load average: ${load}, ${(parseFloat(load)*0.9).toFixed(2)}, ${(parseFloat(load)*0.8).toFixed(2)}`);
+  const s=Math.floor((Date.now()-state.startTime)/1000);
+  const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;
+  print(` ${new Date().toTimeString().slice(0,8)} up ${h}h ${m}m ${sec}s,  1 user`);
 };
-
 commands.free = function() {
   printEmpty();
-  printTable(['', 'total', 'used', 'free', 'shared', 'buff/cache', 'available'],
-    [['Mem:', state.memTotal, state.memUsed, state.memTotal-state.memUsed, 0, Math.floor(state.memUsed*0.1), state.memTotal-state.memUsed+Math.floor(state.memUsed*0.1)],
-     ['Swap:', state.swapTotal, state.swapUsed, state.swapTotal-state.swapUsed, '-', '-', '-']],
-    [7, 8, 8, 8, 8, 10, 10]);
+  printTable(['','total','used','free','shared','buff/cache','available'],
+    [['Mem:',state.memTotal,state.memUsed,state.memTotal-state.memUsed,0,Math.floor(state.memUsed*0.1),state.memTotal-state.memUsed+Math.floor(state.memUsed*0.1)],
+     ['Swap:',state.swapTotal,state.swapUsed,state.swapTotal-state.swapUsed,0,0,state.swapTotal-state.swapUsed]],
+    [7,7,7,7,7,10,10]);
   printEmpty();
 };
-
-commands.env = function() {
-  Object.entries(state.env).forEach(([k, v]) => print(`${k}=${v}`));
-};
-
+commands.env = function() { Object.entries(state.env).forEach(([k,v])=>print(`${k}=${v}`)); };
 commands.export = function(args) {
   if (!args[0]) { commands.env([]); return; }
-  const eq = args[0].indexOf('=');
-  if (eq === -1) { print(`export: ${args[0]}: not in KEY=VALUE format`, 'err'); return; }
-  const key = args[0].slice(0, eq).trim();
-  const val = args.join(' ').slice(eq + 1).trim();
-  state.env[key] = val;
-  print(`${key}=${val}`, 'success');
+  const raw=args.join(' '), eq=raw.indexOf('=');
+  if (eq===-1) { print(`export: '${args[0]}': not KEY=VALUE format`,'err'); return; }
+  const key=raw.slice(0,eq).trim(), val=raw.slice(eq+1).trim();
+  state.env[key]=val;
+  print(`${key}=${val}`,'success');
 };
-
-commands.unset = function(args) {
-  if (!args[0]) { print('unset: missing variable name', 'err'); return; }
-  delete state.env[args[0]];
-};
-
-commands.echo = function(args) {
-  let text = args.join(' ');
-  // Basic variable expansion
-  text = text.replace(/\$(\w+)/g, (_, k) => state.env[k] || '');
-  print(text);
-};
-
-commands.clear = function() {
-  out.innerHTML = '';
-};
-
+commands.unset = function(args) { if(!args[0]){print('unset: missing name','err');return;} delete state.env[args[0]]; };
+commands.echo = function(args) { print(args.join(' ').replace(/\$(\w+)/g,(_,k)=>state.env[k]??'')); };
+commands.clear = function() { outEl.innerHTML=''; };
 commands.history = function() {
-  if (state.history.length === 0) { print('(no history)', 'dim'); return; }
-  state.history.forEach((cmd, i) => printHTML(`  <span style="color:var(--green-dim)">${String(i+1).padStart(4)}  </span>${cmd}`));
+  if (!state.history.length) { print('(empty)','dim'); return; }
+  state.history.forEach((cmd,i)=>printHTML(`  <span style="color:var(--green-faint)">${String(i+1).padStart(4)}  </span>${esc(cmd)}`));
 };
 
 commands.neofetch = function() {
-  const upS = Math.floor((Date.now() - state.startTime) / 1000);
-  const h = Math.floor(upS/3600), m = Math.floor((upS%3600)/60);
-  const uptimeStr = `${h}h ${m}m`;
+  const s=Math.floor((Date.now()-state.startTime)/1000);
+  const ascii=['   ___  _  __     ','  / __|| |/ / ___ ','  | (__ | \'/ / -_)','   \\___||_|\\_\\ \\___|','  v'+KERNEL_VERSION.padEnd(14),'                   '];
+  const info=[['OS',`ComputeKERNEL ${KERNEL_VERSION}`],['Host',HOSTNAME],['Kernel',`ckv-${KERNEL_VERSION}-amd64`],['Uptime',`${Math.floor(s/3600)}h ${Math.floor((s%3600)/60)}m`],['Shell',state.env.SHELL],['CPU','Virtual CPU @ 3.0GHz (4)'],['Memory',`${state.memUsed}MB / ${state.memTotal}MB`],['Disk',`${state.diskUsed}MB / ${state.diskTotal}MB`],['Processes',processes.length],['User',state.user]];
   printEmpty();
-  const ascii = [
-    '   ____           ',
-    '  / ___|__ _ _ __ ',
-    ' | |   / _` | \'_ \\',
-    ' | |__| (_| | | | |',
-    '  \\____\\__,_|_| |_|',
-    '   CK v1.0.0       '
-  ];
-  const info = [
-    ['OS', `ComputeKERNEL ${KERNEL_VERSION}`],
-    ['Host', HOSTNAME],
-    ['Kernel', `ckv-${KERNEL_VERSION}-amd64`],
-    ['Uptime', uptimeStr],
-    ['Shell', state.env.SHELL],
-    ['CPU', 'Virtual CPU @ 3.0GHz (4)'],
-    ['Memory', `${state.memUsed}MB / ${state.memTotal}MB`],
-    ['Disk', `${state.diskUsed}MB / ${state.diskTotal}MB`],
-    ['User', state.user],
-    ['Processes', processes.length],
-  ];
-  const maxLines = Math.max(ascii.length, info.length);
-  for (let i = 0; i < maxLines; i++) {
-    const a = (ascii[i] || '').padEnd(22);
-    const inf = info[i] ? `<span style="color:var(--amber)">${info[i][0].padEnd(10)}</span>: ${info[i][1]}` : '';
-    printHTML(`<span style="color:var(--green);font-family:VT323,monospace;font-size:15px">${a}</span>  ${inf}`);
+  for(let i=0;i<Math.max(ascii.length,info.length);i++){
+    const a=(ascii[i]||'').padEnd(20);
+    const kv=info[i]?`<span style="color:var(--amber)">${esc(info[i][0]).padEnd(11)}</span>: ${esc(String(info[i][1]))}`:'';
+    printHTML(`<span style="color:var(--green);font-family:VT323,monospace;font-size:15px">${esc(a)}</span>  ${kv}`);
   }
   printEmpty();
-  // Color palette
-  let palette = '';
-  const colors = ['var(--green)', 'var(--amber)', 'var(--cyan)', 'var(--red)', '#b44fce', '#4f8bce', '#ffffff'];
-  colors.forEach(c => { palette += `<span style="background:${c};color:${c}">███</span>`; });
-  printHTML('  ' + palette);
+  printHTML('  '+['var(--green)','var(--amber)','var(--cyan)','var(--red)','#b44fce','#4f8bce','#fff'].map(c=>`<span style="background:${c};color:${c}">███</span>`).join(''));
   printEmpty();
 };
 
 commands.dmesg = function() {
-  const klog = getNode('/var/log/kernel.log');
+  const n=getNode('/var/log/kernel.log');
   printEmpty();
-  if (klog) klog.content.split('\n').forEach(line => print(line, 'dim'));
+  if(n)n.content.split('\n').forEach(l=>print(l,'dim'));
   printEmpty();
 };
 
 commands.lscpu = function() {
   printEmpty();
-  const data = [
-    ['Architecture', 'x86_64'],
-    ['CPU op-mode(s)', '32-bit, 64-bit'],
-    ['Byte Order', 'Little Endian'],
-    ['CPU(s)', '4'],
-    ['Thread(s) per core', '2'],
-    ['Core(s) per socket', '2'],
-    ['Socket(s)', '1'],
-    ['Vendor ID', 'ComputeKERNEL'],
-    ['Model name', 'Virtual CPU @ 3.0GHz'],
-    ['CPU MHz', '3000.000'],
-    ['L1d cache', '32K'],
-    ['L2 cache', '256K'],
-    ['L3 cache', '8192K'],
-  ];
-  data.forEach(([k, v]) => printHTML(`<span style="color:var(--amber)">${k.padEnd(24)}</span>${v}`));
+  [['Architecture','x86_64'],['CPU op-modes','32-bit, 64-bit'],['Byte Order','Little Endian'],['CPU(s)','4'],['Thread(s)/core','2'],['Vendor ID','ComputeKERNEL'],['Model name','Virtual CPU @ 3.0GHz'],['CPU MHz','3000.000'],['L1d cache','32K'],['L2 cache','256K'],['L3 cache','8192K']].forEach(([k,v])=>printHTML(`<span style="color:var(--amber)">${esc(k).padEnd(20)}</span>${esc(v)}`));
   printEmpty();
 };
 
 commands.su = function(args) {
-  const newUser = args[0] || 'root';
-  if (!['root', 'guest'].includes(newUser)) { print(`su: user ${newUser} does not exist`, 'err'); return; }
-  state.user = newUser;
-  state.env.USER = newUser;
-  state.env.HOME = newUser === 'root' ? '/home/root' : '/home/guest';
-  print(`Switched to user: ${newUser}`, 'success');
-  document.getElementById('stat-user').textContent = newUser;
+  const u=args[0]||'root';
+  if (!['root','guest'].includes(u)&&!getNode(`/home/${u}`)) { print(`su: user '${u}' does not exist`,'err'); return; }
+  state.user=u; state.env.USER=u; state.env.HOME=`/home/${u}`;
+  document.getElementById('stat-user').textContent=u;
   updatePS1();
+  print(`Switched to ${u}`,'success');
 };
 
 commands.useradd = function(args) {
-  if (!args[0]) { print('useradd: missing username', 'err'); return; }
-  const name = args[0];
-  const home = `/home/${name}`;
-  if (state.user !== 'root') { print('useradd: Permission denied', 'err'); return; }
-  if (getNode(home)) { print(`useradd: user '${name}' already exists`, 'err'); return; }
-  fs[home] = { type: 'dir', children: [], created: Date.now(), modified: Date.now() };
+  if (!args[0]) { print('useradd: missing username','err'); return; }
+  if (state.user!=='root') { print('useradd: Permission denied','err'); return; }
+  const name=args[0], home=`/home/${name}`;
+  if (getNode(home)) { print(`useradd: '${name}' already exists`,'err'); return; }
+  fs[home]={type:'dir',children:[],created:Date.now(),modified:Date.now()};
   fs['/home'].children.push(name);
-  const passwd = getNode('/etc/passwd');
-  const uid = 1001 + processes.length;
-  passwd.content += `\n${name}:x:${uid}:${uid}:${name}:/home/${name}:/bin/ck`;
+  const pw=getNode('/etc/passwd'), uid=1001+processes.length;
+  pw.content+=`\n${name}:x:${uid}:${uid}:${name}:${home}:/bin/ck`;
   updateFSTree();
-  print(`useradd: user '${name}' created`, 'success');
+  print(`User '${name}' created (uid=${uid})`,'success');
 };
 
-// ---- export_save ----
+// ── Session ──
 commands.export_save = function() {
-  print('Serializing kernel state...', 'info');
-  const xml = buildCKernelXML();
-  const blob = new Blob([xml], { type: 'application/xml' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-  a.download = `computekernel-${ts}.ckernel`;
-  a.click();
+  print('Serializing kernel state...','info');
+  const xml=buildCKernelXML();
+  const blob=new Blob([xml],{type:'application/xml'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const ts=new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
+  a.href=url; a.download=`computekernel-${ts}.ckernel`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
-
-  // Also save to localStorage as cookie-equivalent
-  try {
-    localStorage.setItem('ck_autosave', xml);
-    localStorage.setItem('ck_autosave_time', Date.now().toString());
-  } catch(e) {}
-
-  print(`Session exported: computekernel-${ts}.ckernel`, 'success');
-  print('Auto-save also written to browser storage.', 'dim');
+  try{localStorage.setItem('ck_autosave',xml);localStorage.setItem('ck_autosave_time',String(Date.now()));}catch(_){}
+  print(`Exported: computekernel-${ts}.ckernel`,'success');
+  print('Browser auto-save updated.','dim');
   notify('Session saved!');
 };
 
-// ---- import_save ----
 commands.import_save = function() {
-  print('Select a .ckernel file to import...', 'info');
+  print('Select .ckernel file...','info');
   document.getElementById('file-import').click();
 };
 
-// ---- autosave ----
 commands.autosave = function() {
-  const saved = localStorage.getItem('ck_autosave');
-  if (!saved) { print('No auto-save found in browser storage.', 'dim'); return; }
-  const ts = localStorage.getItem('ck_autosave_time');
-  const d = ts ? new Date(parseInt(ts)).toLocaleString() : 'unknown';
-  print(`Found auto-save from: ${d}`, 'info');
-  print('Run import_save to load a file, or type: load_autosave', 'dim');
+  const t=localStorage.getItem('ck_autosave_time');
+  if (!t) { print('No auto-save found.','dim'); return; }
+  print(`Auto-save: ${new Date(parseInt(t)).toLocaleString()}`,'info');
+  print("Run 'load_autosave' to restore.",'dim');
 };
 
 commands.load_autosave = function() {
-  const saved = localStorage.getItem('ck_autosave');
-  if (!saved) { print('No auto-save found in browser storage.', 'err'); return; }
-  try {
-    parseCKernelXML(saved);
-    print('Auto-save loaded successfully.', 'success');
-    updateFSTree();
-    updatePS1();
-    updateSidebar();
-  } catch(e) {
-    print('Failed to load auto-save: ' + e.message, 'err');
-  }
+  const saved=localStorage.getItem('ck_autosave');
+  if (!saved) { print('No auto-save found.','err'); return; }
+  try{parseCKernelXML(saved);print('Auto-save loaded.','success');updateFSTree();updatePS1();updateSidebar();}
+  catch(e){print('Failed: '+e.message,'err');}
 };
 
-// ---- XML builder ----
+// ── XML build ──
 function buildCKernelXML() {
-  function esc(s) {
-    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
-
-  function buildFSNode(path, node, depth) {
-    const indent = '  '.repeat(depth);
-    const name = basename(path) || '/';
-    if (node.type === 'dir') {
-      let children = node.children.map(c => {
-        const cp = normalizePath(path + '/' + c);
-        return fs[cp] ? buildFSNode(cp, fs[cp], depth + 1) : '';
-      }).join('\n');
-      return `${indent}<dir name="${esc(name)}" path="${esc(path)}" created="${node.created||0}" modified="${node.modified||0}">\n${children}\n${indent}</dir>`;
-    } else {
-      return `${indent}<file name="${esc(name)}" path="${esc(path)}" size="${node.size||0}" created="${node.created||0}" modified="${node.modified||0}"><![CDATA[${node.content||''}]]></file>`;
+  const X=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  function buildNode(path,node,depth){
+    const indent='  '.repeat(depth), name=depth===1?'/':basename(path);
+    if(node.type==='dir'){
+      const kids=(node.children||[]).map(c=>{const cp=normalizePath(path+'/'+c);return fs[cp]?buildNode(cp,fs[cp],depth+1):'';}).join('\n');
+      return `${indent}<dir name="${X(name)}" path="${X(path)}" created="${node.created||0}" modified="${node.modified||0}">\n${kids}\n${indent}</dir>`;
     }
+    return `${indent}<file name="${X(name)}" path="${X(path)}" size="${node.size||0}" created="${node.created||0}" modified="${node.modified||0}"><![CDATA[${node.content||''}]]></file>`;
   }
-
-  const fsXml = buildFSNode('/', fs['/'], 2);
-  const envXml = Object.entries(state.env).map(([k,v]) => `    <var name="${esc(k)}" value="${esc(v)}"/>`).join('\n');
-  const histXml = state.history.map(h => `    <command><![CDATA[${h}]]></command>`).join('\n');
-  const procXml = processes.map(p => `    <process pid="${p.pid}" name="${esc(p.name)}" cpu="${p.cpu}" mem="${p.mem}" state="${p.state}" user="${esc(p.user)}" started="${p.started}"/>`).join('\n');
-  const stateXml = `    <uptime_offset>${Date.now() - state.startTime}</uptime_offset>
-    <mem_used>${state.memUsed}</mem_used>
-    <swap_used>${state.swapUsed}</swap_used>
-    <disk_used>${state.diskUsed}</disk_used>
-    <next_pid>${state.nextPid}</next_pid>
-    <user>${esc(state.user)}</user>
-    <cwd>${esc(state.cwd)}</cwd>`;
-
   return `<?xml version="1.0" encoding="UTF-8"?>
-<!-- ComputeKERNEL Session File | .ckernel format v1 -->
-<ckernel version="${KERNEL_VERSION}" timestamp="${Date.now()}" hostname="${esc(HOSTNAME)}">
+<!-- ComputeKERNEL Session | .ckernel v1 | ${new Date().toISOString()} -->
+<ckernel version="${KERNEL_VERSION}" timestamp="${Date.now()}" hostname="${X(HOSTNAME)}">
   <filesystem>
-${fsXml}
+${buildNode('/',fs['/'],2)}
   </filesystem>
   <environment>
-${envXml}
+${Object.entries(state.env).map(([k,v])=>`    <var name="${X(k)}" value="${X(v)}"/>`).join('\n')}
   </environment>
   <history>
-${histXml}
+${state.history.map(h=>`    <cmd><![CDATA[${h}]]></cmd>`).join('\n')}
   </history>
   <processes>
-${procXml}
+${processes.map(p=>`    <process pid="${p.pid}" name="${X(p.name)}" cpu="${p.cpu}" mem="${p.mem}" state="${X(p.state)}" user="${X(p.user)}" started="${p.started}"/>`).join('\n')}
   </processes>
   <kernel_state>
-${stateXml}
+    <user>${X(state.user)}</user><cwd>${X(state.cwd)}</cwd>
+    <mem_used>${state.memUsed}</mem_used><swap_used>${state.swapUsed}</swap_used>
+    <disk_used>${state.diskUsed}</disk_used><next_pid>${state.nextPid}</next_pid>
   </kernel_state>
 </ckernel>`;
 }
 
-// ---- XML parser ----
 function parseCKernelXML(xmlStr) {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(xmlStr, 'application/xml');
-  const err = doc.querySelector('parsererror');
-  if (err) throw new Error('Invalid XML: ' + err.textContent.slice(0, 100));
-
-  // Rebuild FS
-  const newFs = {};
-  function parseDir(el, path) {
-    const name = el.getAttribute('name');
-    const fullPath = path === '/' ? '/' : normalizePath(path + '/' + name);
-    const children = [];
-    for (const child of el.children) {
-      if (child.tagName === 'dir') {
-        children.push(child.getAttribute('name'));
-        parseDir(child, fullPath);
-      } else if (child.tagName === 'file') {
-        children.push(child.getAttribute('name'));
-        const fpath = normalizePath(fullPath + '/' + child.getAttribute('name'));
-        newFs[fpath] = {
-          type: 'file',
-          content: child.textContent || '',
-          size: parseInt(child.getAttribute('size')) || 0,
-          created: parseInt(child.getAttribute('created')) || Date.now(),
-          modified: parseInt(child.getAttribute('modified')) || Date.now()
-        };
+  const doc=new DOMParser().parseFromString(xmlStr,'application/xml');
+  if(doc.querySelector('parsererror')) throw new Error('Malformed XML');
+  const newFs={};
+  function parseDir(el,parentPath){
+    const name=el.getAttribute('name');
+    const fullPath=parentPath==='/'&&name==='/'?'/':normalizePath(parentPath+'/'+name);
+    const children=[];
+    for(const child of el.children){
+      if(child.tagName==='dir'){children.push(child.getAttribute('name'));parseDir(child,fullPath);}
+      else if(child.tagName==='file'){
+        const fname=child.getAttribute('name'); children.push(fname);
+        newFs[normalizePath(fullPath+'/'+fname)]={type:'file',content:child.textContent||'',size:parseInt(child.getAttribute('size'))||0,created:parseInt(child.getAttribute('created'))||Date.now(),modified:parseInt(child.getAttribute('modified'))||Date.now()};
       }
     }
-    newFs[fullPath] = {
-      type: 'dir', children,
-      created: parseInt(el.getAttribute('created')) || Date.now(),
-      modified: parseInt(el.getAttribute('modified')) || Date.now()
-    };
+    newFs[fullPath]={type:'dir',children,created:parseInt(el.getAttribute('created'))||Date.now(),modified:parseInt(el.getAttribute('modified'))||Date.now()};
   }
-
-  const rootEl = doc.querySelector('filesystem > dir');
-  if (rootEl) parseDir(rootEl, '/');
-
-  // Environment
-  const newEnv = {};
-  doc.querySelectorAll('environment var').forEach(v => {
-    newEnv[v.getAttribute('name')] = v.getAttribute('value');
-  });
-
-  // History
-  const newHistory = [];
-  doc.querySelectorAll('history command').forEach(c => newHistory.push(c.textContent));
-
-  // Processes
-  const newProcs = [];
-  doc.querySelectorAll('processes process').forEach(p => {
-    newProcs.push({
-      pid: parseInt(p.getAttribute('pid')),
-      name: p.getAttribute('name'),
-      cpu: parseFloat(p.getAttribute('cpu')),
-      mem: parseFloat(p.getAttribute('mem')),
-      state: p.getAttribute('state'),
-      user: p.getAttribute('user'),
-      started: parseInt(p.getAttribute('started')) || Date.now()
-    });
-  });
-
-  // State
-  const ks = doc.querySelector('kernel_state');
-  const newState = {};
-  if (ks) {
-    newState.memUsed = parseInt(ks.querySelector('mem_used')?.textContent) || state.memUsed;
-    newState.swapUsed = parseInt(ks.querySelector('swap_used')?.textContent) || 0;
-    newState.diskUsed = parseInt(ks.querySelector('disk_used')?.textContent) || state.diskUsed;
-    newState.nextPid = parseInt(ks.querySelector('next_pid')?.textContent) || state.nextPid;
-    newState.user = ks.querySelector('user')?.textContent || state.user;
-    newState.cwd = ks.querySelector('cwd')?.textContent || state.cwd;
+  const rootEl=doc.querySelector('filesystem > dir');
+  if(rootEl)parseDir(rootEl,'/');
+  if(Object.keys(newFs).length)Object.assign(fs,newFs);
+  doc.querySelectorAll('environment var').forEach(v=>{state.env[v.getAttribute('name')]=v.getAttribute('value');});
+  const newHist=[];doc.querySelectorAll('history cmd').forEach(c=>newHist.push(c.textContent));if(newHist.length)state.history=newHist;
+  const newProcs=[];doc.querySelectorAll('processes process').forEach(p=>newProcs.push({pid:parseInt(p.getAttribute('pid')),name:p.getAttribute('name'),cpu:parseFloat(p.getAttribute('cpu')),mem:parseFloat(p.getAttribute('mem')),state:p.getAttribute('state'),user:p.getAttribute('user'),started:parseInt(p.getAttribute('started'))||Date.now()}));
+  if(newProcs.length)processes.splice(0,processes.length,...newProcs);
+  const ks=doc.querySelector('kernel_state');
+  if(ks){
+    const g=sel=>ks.querySelector(sel)?.textContent;
+    if(g('user')){state.user=g('user');state.env.USER=state.user;}
+    if(g('cwd'))state.cwd=g('cwd');
+    if(g('mem_used'))state.memUsed=parseInt(g('mem_used'));
+    if(g('disk_used'))state.diskUsed=parseInt(g('disk_used'));
+    if(g('next_pid'))state.nextPid=parseInt(g('next_pid'));
   }
-
-  // Apply
-  Object.assign(fs, newFs);
-  if (Object.keys(newEnv).length > 0) Object.assign(state.env, newEnv);
-  if (newHistory.length > 0) state.history = newHistory;
-  if (newProcs.length > 0) processes.splice(0, processes.length, ...newProcs);
-  if (newState.memUsed !== undefined) state.memUsed = newState.memUsed;
-  if (newState.nextPid !== undefined) state.nextPid = newState.nextPid;
-  if (newState.user) { state.user = newState.user; state.env.USER = newState.user; }
-  if (newState.cwd) state.cwd = newState.cwd;
 }
 
-// ---- File import handler ----
-document.getElementById('file-import').addEventListener('change', function(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = function(ev) {
-    try {
-      const content = ev.target.result;
-      let xmlStr = content;
-      // Try JSON fallback
-      if (file.name.endsWith('.json')) {
-        try {
-          const json = JSON.parse(content);
-          // Convert simple JSON save to XML structure if needed
-          xmlStr = jsonToXML(json);
-        } catch(_) {}
-      }
-      parseCKernelXML(xmlStr);
-      print(`Session imported from: ${file.name}`, 'success');
-      updateFSTree();
-      updatePS1();
-      updateSidebar();
-      notify('Session imported!');
-    } catch(err) {
-      print(`import_save: Failed to parse file: ${err.message}`, 'err');
-    }
-  };
-  reader.readAsText(file);
-  this.value = '';
+document.getElementById('file-import').addEventListener('change',function(e){
+  const file=e.target.files[0]; if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{try{parseCKernelXML(ev.target.result);print(`Imported: ${file.name}`,'success');updateFSTree();updatePS1();updateSidebar();notify('Session imported!');}catch(err){print(`import_save: ${err.message}`,'err');}};
+  reader.readAsText(file); this.value='';
 });
 
-function jsonToXML(json) {
-  // Simple JSON wrapper if someone exports as JSON from another tool
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<ckernel version="${KERNEL_VERSION}" timestamp="${Date.now()}" hostname="${HOSTNAME}">
-  <filesystem><dir name="/" path="/"><dir name="home" path="/home"><dir name="root" path="/home/root"></dir></dir></dir></filesystem>
-  <environment></environment><history></history><processes></processes><kernel_state></kernel_state>
-</ckernel>`;
-}
-
-// ---- Helpers ----
-function formatSize(bytes) {
-  if (bytes < 1024) return bytes + 'B';
-  if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + 'K';
-  if (bytes < 1024*1024*1024) return (bytes/1024/1024).toFixed(1) + 'M';
-  return (bytes/1024/1024/1024).toFixed(1) + 'G';
-}
-
-function getCpuAvg() {
-  if (processes.length === 0) return 0;
-  return processes.reduce((s,p) => s + p.cpu, 0);
-}
-
-function updateDiskUsage(delta) {
-  state.diskUsed = Math.max(0, state.diskUsed + Math.floor(delta/1024));
-}
-
-// ---- Sidebar ----
+// ── Sidebar ──
 function updateFSTree() {
-  const el = document.getElementById('fs-tree');
-  el.innerHTML = '';
-  const cwd = state.cwd;
-  function renderDir(path, depth) {
-    if (depth > 2) return;
-    const node = fs[path];
-    if (!node || node.type !== 'dir') return;
-    if (depth > 0) {
-      const d = document.createElement('div');
-      d.className = 'sidebar-item dir' + (path === cwd ? ' active' : '');
-      d.style.paddingLeft = (14 + depth*8) + 'px';
-      d.textContent = basename(path) + '/';
-      d.onclick = () => { commands.cd([path]); updateFSTree(); };
-      el.appendChild(d);
+  const el=document.getElementById('fs-tree');
+  el.innerHTML='';
+  function renderDir(path,depth){
+    if(depth>2)return;
+    const node=fs[path];
+    if(!node||node.type!=='dir')return;
+    if(depth>0){
+      const item=document.createElement('div');
+      item.className='sidebar-item'+(path===state.cwd?' active':'');
+      item.style.paddingLeft=(14+depth*10)+'px';
+      item.innerHTML=`<span class="si-icon" style="color:var(--cyan)">▸</span><span class="si-label">${esc(basename(path))}/</span>`;
+      item.onclick=()=>{commands.cd([path]);updateFSTree();};
+      el.appendChild(item);
     }
-    (node.children || []).slice(0, 8).forEach(c => {
-      const cp = normalizePath(path + '/' + c);
-      const cn = fs[cp];
-      if (!cn) return;
-      if (cn.type === 'dir') {
-        renderDir(cp, depth + 1);
-      } else if (depth >= 1) {
-        const f = document.createElement('div');
-        f.className = 'sidebar-item file';
-        f.style.paddingLeft = (14 + (depth+1)*8) + 'px';
-        f.textContent = c;
-        f.onclick = () => { commands.cat([cp]); scrollToBottom(); };
-        el.appendChild(f);
+    (node.children||[]).slice(0,10).forEach(c=>{
+      const cp=normalizePath(path+'/'+c), cn=fs[cp]; if(!cn)return;
+      if(cn.type==='dir'){renderDir(cp,depth+1);}
+      else if(depth>=1){
+        const item=document.createElement('div');
+        item.className='sidebar-item'; item.style.paddingLeft=(14+(depth+1)*10)+'px';
+        item.innerHTML=`<span class="si-icon" style="color:rgba(0,255,65,0.3)">·</span><span class="si-label">${esc(c)}</span>`;
+        item.onclick=()=>{commands.cat([cp]);scrollDown();};
+        el.appendChild(item);
       }
     });
   }
-  renderDir('/', 0);
+  renderDir('/',0);
 }
 
 function updateProcList() {
-  const el = document.getElementById('proc-list');
-  el.innerHTML = '';
-  processes.slice(0, 8).forEach(p => {
-    const d = document.createElement('div');
-    d.className = 'sidebar-item';
-    d.innerHTML = `<span style="color:var(--green-dim)">${p.pid}</span> ${p.name}`;
-    el.appendChild(d);
+  const el=document.getElementById('proc-list');
+  el.innerHTML='';
+  processes.slice(0,10).forEach(p=>{
+    const sc=p.state==='R'?'running':p.state==='I'?'idle':'sleeping';
+    const item=document.createElement('div'); item.className='proc-item';
+    item.innerHTML=`<span class="proc-pid">${p.pid}</span><span class="proc-dot ${sc}"></span><span class="proc-name">${esc(p.name)}</span>`;
+    el.appendChild(item);
   });
 }
 
 function updateSidebar() {
-  const ramPct = Math.round(state.memUsed / state.memTotal * 100);
-  const swapPct = Math.round(state.swapUsed / state.swapTotal * 100);
-  const diskPct = Math.round(state.diskUsed / state.diskTotal * 100);
-
-  document.getElementById('ram-pct').textContent = ramPct + '%';
-  document.getElementById('swap-pct').textContent = swapPct + '%';
-  document.getElementById('disk-pct').textContent = diskPct + '%';
-
-  const ramFill = document.getElementById('ram-fill');
-  ramFill.style.width = ramPct + '%';
-  ramFill.className = 'mem-fill' + (ramPct > 90 ? ' crit' : ramPct > 70 ? ' warn' : '');
-
-  const swapFill = document.getElementById('swap-fill');
-  swapFill.style.width = swapPct + '%';
-
-  const diskFill = document.getElementById('disk-fill');
-  diskFill.style.width = diskPct + '%';
-  diskFill.className = 'mem-fill' + (diskPct > 90 ? ' crit' : diskPct > 70 ? ' warn' : '');
-
-  document.getElementById('stat-cpu').textContent = getCpuAvg().toFixed(1) + '%';
-  document.getElementById('stat-mem').textContent = `${state.memUsed}/${state.memTotal} MB`;
-  document.getElementById('stat-proc').textContent = processes.length;
-
+  const rp=Math.min(100,Math.round(state.memUsed/state.memTotal*100));
+  const sp=Math.min(100,Math.round(state.swapUsed/state.swapTotal*100));
+  const dp=Math.min(100,Math.round(state.diskUsed/state.diskTotal*100));
+  document.getElementById('ram-pct').textContent=rp+'%';
+  document.getElementById('swap-pct').textContent=sp+'%';
+  document.getElementById('disk-pct').textContent=dp+'%';
+  const setBar=(id,pct)=>{const el=document.getElementById(id);el.style.width=pct+'%';el.className='mem-fill'+(pct>90?' crit':pct>70?' warn':'');};
+  setBar('ram-fill',rp);setBar('swap-fill',sp);setBar('disk-fill',dp);
+  document.getElementById('stat-cpu').textContent=getCpuTotal().toFixed(1)+'%';
+  document.getElementById('stat-mem').textContent=state.memUsed+'MB';
+  document.getElementById('stat-proc').textContent=processes.length;
   updateProcList();
 }
 
-// ---- Uptime ticker ----
-function tickUptime() {
-  const s = Math.floor((Date.now() - state.startTime) / 1000);
-  const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
-  document.getElementById('stat-uptime').textContent =
-    `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
-
-  // Simulate minor CPU fluctuations
-  processes.forEach(p => {
-    if (p.pid > 10 && Math.random() < 0.05) {
-      p.cpu = Math.max(0, p.cpu + (Math.random() - 0.5) * 0.5);
-    }
-  });
-
-  // Rarely spawn or die a process for realism
-  if (Math.random() < 0.003 && processes.length < 20) {
-    const names = ['kworker', 'jbd2', 'rcu_sched', 'ksoftirqd', 'migration'];
-    const name = names[Math.floor(Math.random() * names.length)] + '/0';
-    const pid = state.nextPid++;
-    processes.push({ pid, name, cpu: 0.0, mem: 0.5, state: 'I', user: 'root', started: Date.now() });
-  }
-  if (Math.random() < 0.002 && processes.length > 8) {
-    const idx = Math.floor(Math.random() * processes.length);
-    if (processes[idx].pid > 10) processes.splice(idx, 1);
-  }
-
+// ── Tick ──
+function tick() {
+  const s=Math.floor((Date.now()-state.startTime)/1000);
+  const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;
+  document.getElementById('stat-uptime').textContent=`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+  processes.forEach(p=>{if(p.pid>10&&Math.random()<0.06)p.cpu=Math.max(0,+(p.cpu+(Math.random()-0.5)*0.6).toFixed(2));});
+  if(Math.random()<0.003&&processes.length<22){const names=['kworker','jbd2','rcu_sched','ksoftirqd','migration'];const pid=state.nextPid++;processes.push({pid,name:names[~~(Math.random()*names.length)]+'/0',cpu:0.0,mem:0.3,state:'I',user:'root',started:Date.now()});}
+  if(Math.random()<0.002&&processes.length>9){const i=~~(Math.random()*processes.length);if(processes[i].pid>10)processes.splice(i,1);}
   updateSidebar();
 }
 
-// ============================================================
-//  Command Processor
-// ============================================================
+// ── Command runner ──
 function runCommand(raw) {
-  const trimmed = raw.trim();
-  if (!trimmed) return;
-
+  const trimmed=raw.trim(); if(!trimmed)return;
   pushHistory(trimmed);
-
-  // Print prompt + command
-  const displayCwd = state.cwd.replace('/home/root', '~');
-  printHTML(`<span style="color:var(--amber)">${state.user}@${HOSTNAME}</span>:<span style="color:var(--cyan)">${displayCwd}</span>$ <span style="color:#fff">${escHTML(trimmed)}</span>`, 'cmd');
-
-  // Tokenize
-  const tokens = trimmed.match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g) || [];
-  const cmd = tokens[0].toLowerCase();
-  const args = tokens.slice(1).map(t => t.replace(/^['"]|['"]$/g, ''));
-
-  if (commands[cmd]) {
-    try {
-      commands[cmd](args);
-    } catch(e) {
-      print(`Kernel panic: ${e.message}`, 'err');
-    }
-  } else {
-    print(`${cmd}: command not found  (type 'help' for a list)`, 'err');
-  }
-
-  scrollToBottom();
-  updateFSTree();
+  const cwd=state.cwd.replace('/home/'+state.user,'~');
+  printHTML(`<span style="color:var(--amber)">${esc(state.user)}@${esc(HOSTNAME)}</span><span style="color:rgba(0,255,65,0.35)">:</span><span style="color:var(--cyan)">${esc(cwd)}</span><span style="color:var(--green-faint)">$</span> <span style="color:#fff">${esc(trimmed)}</span>`,'cmd');
+  const tokens=trimmed.match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g)||[];
+  const cmd=tokens[0].toLowerCase(), args=tokens.slice(1).map(t=>t.replace(/^['"]|['"]$/g,''));
+  if(commands[cmd]){try{commands[cmd](args);}catch(e){print(`kernel panic: ${e.message}`,'err');}}
+  else print(`${cmd}: command not found  (try 'help')`,'err');
+  scrollDown(); updateFSTree();
 }
 
-function escHTML(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-// ============================================================
-//  Input handling
-// ============================================================
-const input = document.getElementById('input');
-
-input.addEventListener('keydown', function(e) {
-  if (e.key === 'Enter') {
-    const val = input.value;
-    input.value = '';
-    state.historyIndex = state.history.length;
-    runCommand(val);
-  } else if (e.key === 'ArrowUp') {
+// ── Input ──
+const inputEl=document.getElementById('input');
+inputEl.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){const v=inputEl.value;inputEl.value='';state.historyIndex=state.history.length;runCommand(v);}
+  else if(e.key==='ArrowUp'){e.preventDefault();if(state.historyIndex>0){state.historyIndex--;inputEl.value=state.history[state.historyIndex]||'';}}
+  else if(e.key==='ArrowDown'){e.preventDefault();if(state.historyIndex<state.history.length-1){state.historyIndex++;inputEl.value=state.history[state.historyIndex]||'';}else{state.historyIndex=state.history.length;inputEl.value='';}}
+  else if(e.key==='Tab'){
     e.preventDefault();
-    if (state.historyIndex > 0) {
-      state.historyIndex--;
-      input.value = state.history[state.historyIndex] || '';
+    const v=inputEl.value, tokens=v.split(' '), last=tokens[tokens.length-1];
+    if(tokens.length===1){const m=Object.keys(commands).filter(c=>c.startsWith(last));if(m.length===1){inputEl.value=m[0]+' ';}else if(m.length>1){print(m.join('  '),'dim');scrollDown();}}
+    else{
+      const dir=last.includes('/')?resolvePath(last.slice(0,last.lastIndexOf('/')+1)):state.cwd;
+      const prefix=last.includes('/')?last.slice(last.lastIndexOf('/')+1):last;
+      const node=getNode(dir);
+      if(node&&node.type==='dir'){const m=node.children.filter(c=>c.startsWith(prefix));if(m.length===1){tokens[tokens.length-1]=last.slice(0,last.length-prefix.length)+m[0];const matched=resolvePath(tokens[tokens.length-1]);if(fs[matched]&&fs[matched].type==='dir')tokens[tokens.length-1]+='/';inputEl.value=tokens.join(' ');}else if(m.length>1){print(m.join('  '),'dim');scrollDown();}}
     }
-  } else if (e.key === 'ArrowDown') {
-    e.preventDefault();
-    if (state.historyIndex < state.history.length - 1) {
-      state.historyIndex++;
-      input.value = state.history[state.historyIndex] || '';
-    } else {
-      state.historyIndex = state.history.length;
-      input.value = '';
-    }
-  } else if (e.key === 'Tab') {
-    e.preventDefault();
-    // Tab completion
-    const val = input.value;
-    const tokens = val.split(' ');
-    const last = tokens[tokens.length - 1];
-    if (tokens.length === 1) {
-      // Command completion
-      const matches = Object.keys(commands).filter(c => c.startsWith(last));
-      if (matches.length === 1) { input.value = matches[0] + ' '; }
-      else if (matches.length > 1) {
-        printHTML(`<span style="color:var(--amber)">${state.user}@${HOSTNAME}</span>:<span style="color:var(--cyan)">${state.cwd.replace('/home/root','~')}</span>$ ${val}`);
-        print(matches.join('  '), 'dim');
-        scrollToBottom();
-      }
-    } else {
-      // Path completion
-      const dir = last.includes('/') ? resolvePath(last.slice(0, last.lastIndexOf('/')+1)) : state.cwd;
-      const prefix = last.includes('/') ? last.slice(last.lastIndexOf('/')+1) : last;
-      const node = getNode(dir);
-      if (node && node.type === 'dir') {
-        const matches = node.children.filter(c => c.startsWith(prefix));
-        if (matches.length === 1) {
-          const rest = matches[0];
-          tokens[tokens.length-1] = last.slice(0, last.length - prefix.length) + rest;
-          const matched = resolvePath(tokens[tokens.length-1]);
-          if (fs[matched] && fs[matched].type === 'dir') tokens[tokens.length-1] += '/';
-          input.value = tokens.join(' ');
-        } else if (matches.length > 1) {
-          print(matches.join('  '), 'dim');
-          scrollToBottom();
-        }
-      }
-    }
-  } else if (e.key === 'c' && e.ctrlKey) {
-    printHTML(`<span style="color:var(--amber)">${state.user}@${HOSTNAME}</span>:<span style="color:var(--cyan)">${state.cwd.replace('/home/root','~')}</span>$ ^C`);
-    input.value = '';
-  } else if (e.key === 'l' && e.ctrlKey) {
-    e.preventDefault();
-    commands.clear([]);
   }
+  else if(e.key==='c'&&e.ctrlKey){printHTML(`<span style="color:var(--amber)">${esc(state.user)}@${esc(HOSTNAME)}</span>:<span style="color:var(--cyan)">${esc(state.cwd.replace('/home/'+state.user,'~'))}</span>$ ^C`,'cmd');inputEl.value='';}
+  else if(e.key==='l'&&e.ctrlKey){e.preventDefault();commands.clear([]);}
 });
+document.addEventListener('click',()=>inputEl.focus());
 
-// Always focus input
-document.addEventListener('click', () => input.focus());
-
-// ============================================================
-//  Boot Sequence
-// ============================================================
-async function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
-async function boot() {
-  const bootLog = document.getElementById('boot-log');
-  const progressFill = document.getElementById('boot-progress-fill');
-
-  const messages = [
-    { text: '[    0.000000] Booting ComputeKERNEL v' + KERNEL_VERSION + '...', pct: 5, delay: 60 },
-    { text: '[    0.001234] BIOS-provided physical RAM map:', pct: 10, delay: 80 },
-    { text: '[    0.001900] ACPI: IRQ0 used by override', pct: 15, delay: 60 },
-    { text: '[    0.002100] Initializing cgroup subsystems', pct: 20, delay: 80 },
-    { text: '[    0.003100] Kernel command line: root=/dev/sda1 rw quiet', pct: 25, delay: 60 },
-    { text: '[    0.003500] Virtual filesystem (VFS) initialized', pct: 30, delay: 80 },
-    { text: '[    0.004200] Memory subsystem: 2048MB RAM detected', pct: 38, delay: 100 },
-    { text: '[    0.004800] PCI: Using configuration type 1 for base access', pct: 44, delay: 70 },
-    { text: '[    0.005100] NET: Registered PF_INET protocol family', pct: 50, delay: 80 },
-    { text: '[    0.005400] NET: Registered PF_INET6 protocol family', pct: 55, delay: 70 },
-    { text: '[    0.005800] TCP/IP stack loaded (ComputeNET 1.0)', pct: 60, delay: 100 },
-    { text: '[    0.006100] Loading block device drivers...', pct: 65, delay: 80 },
-    { text: '[    0.006400] sda: 20480MB disk detected', pct: 70, delay: 80 },
-    { text: '[    0.006700] EXT4-fs: /dev/sda1 mounted', pct: 75, delay: 90 },
-    { text: '[    0.007000] Running /sbin/init...', pct: 80, delay: 100 },
-    { text: '[    0.007200] Starting system services...', pct: 85, delay: 80 },
-    { text: '[    0.007500] crond: started [pid 80]', pct: 88, delay: 70 },
-    { text: '[    0.007800] sshd: listening [pid 50]', pct: 91, delay: 70 },
-    { text: '[    0.008100] ck-shell: spawned [pid 99]', pct: 95, delay: 80 },
-    { text: '[    0.008400] ComputeKERNEL boot complete.', pct: 100, delay: 200 },
+// ── Boot ──
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function boot(){
+  const logEl=document.getElementById('boot-log'), fillEl=document.getElementById('boot-progress-fill');
+  const msgs=[
+    {text:'[    0.000000] Booting ComputeKERNEL v'+KERNEL_VERSION+'...',pct:5,delay:70},
+    {text:'[    0.001234] BIOS-provided physical RAM map',pct:10,delay:80},
+    {text:'[    0.001900] ACPI: IRQ0 used by override',pct:16,delay:60},
+    {text:'[    0.002100] Initializing cgroup subsystems',pct:22,delay:80},
+    {text:'[    0.003000] Kernel cmdline: root=/dev/sda1 rw quiet',pct:28,delay:65},
+    {text:'[    0.003500] VFS initialized',pct:34,delay:80},
+    {text:'[    0.004200] Memory subsystem: 2048MB RAM detected',pct:42,delay:100},
+    {text:'[    0.004800] PCI: Using configuration type 1',pct:48,delay:70},
+    {text:'[    0.005100] NET: Registered PF_INET protocol family',pct:54,delay:80},
+    {text:'[    0.005400] TCP/IP stack loaded (ComputeNET 1.0)',pct:60,delay:90},
+    {text:'[    0.005800] Loading block device drivers...',pct:65,delay:80},
+    {text:'[    0.006200] sda: 20480MB virtual disk detected',pct:70,delay:80},
+    {text:'[    0.006600] EXT4-fs: /dev/sda1 mounted',pct:76,delay:90},
+    {text:'[    0.007000] Running /sbin/init [pid 1]',pct:82,delay:100},
+    {text:'[    0.007400] crond: started [pid 80]',pct:87,delay:70},
+    {text:'[    0.007700] sshd: listening on :22 [pid 50]',pct:91,delay:70},
+    {text:'[    0.008000] ck-shell: spawned [pid 99]',pct:96,delay:80},
+    {text:'[    0.008300] ComputeKERNEL boot complete.',pct:100,delay:220},
   ];
-
-  for (const msg of messages) {
-    const line = document.createElement('div');
-    line.textContent = msg.text;
-    line.style.cssText = 'animation: fadeIn 0.2s ease';
-    bootLog.appendChild(line);
-    progressFill.style.width = msg.pct + '%';
-    bootLog.scrollTop = bootLog.scrollHeight;
-    await sleep(msg.delay);
+  for(const msg of msgs){
+    const line=document.createElement('div'); line.textContent=msg.text;
+    logEl.appendChild(line); fillEl.style.width=msg.pct+'%';
+    logEl.scrollTop=logEl.scrollHeight; await sleep(msg.delay);
   }
-
-  await sleep(400);
-
-  // Transition
-  const bootScreen = document.getElementById('boot-screen');
-  bootScreen.style.transition = 'opacity 0.5s';
-  bootScreen.style.opacity = '0';
-  await sleep(500);
-  bootScreen.style.display = 'none';
-
-  const shell = document.getElementById('crt-shell');
-  shell.style.display = 'flex';
-
-  // Init UI
-  updatePS1();
-  updateFSTree();
-  updateSidebar();
-
-  // Print MOTD
-  const motd = getNode('/etc/motd');
-  if (motd) {
-    motd.content.split('\n').forEach(l => print(l, 'header'));
-  }
+  await sleep(380);
+  const bs=document.getElementById('boot-screen');
+  bs.style.transition='opacity 0.5s ease'; bs.style.opacity='0';
+  await sleep(520); bs.style.display='none';
+  const shell=document.getElementById('crt-shell');
+  shell.style.display='flex'; shell.style.opacity='0'; shell.style.transition='opacity 0.35s ease';
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{shell.style.opacity='1';}));
+  updatePS1(); updateFSTree(); updateSidebar();
+  const motd=getNode('/etc/motd');
+  if(motd)motd.content.split('\n').forEach(l=>print(l,'header'));
   printEmpty();
-  print(`ComputeKERNEL ${KERNEL_VERSION} on ${HOSTNAME} (${new Date().toLocaleDateString()})`, 'info');
+  print(`ComputeKERNEL ${KERNEL_VERSION} — ${HOSTNAME} — ${new Date().toLocaleDateString()}`,'info');
   printEmpty();
-
-  // Check autosave
-  const saved = localStorage.getItem('ck_autosave');
-  const savedTime = localStorage.getItem('ck_autosave_time');
-  if (saved && savedTime) {
-    const d = new Date(parseInt(savedTime)).toLocaleString();
-    print(`Auto-save detected from ${d}. Run 'load_autosave' to restore.`, 'dim');
-    printEmpty();
-  }
-
-  print('Type \'help\' to see available commands.', 'dim');
-  print('Use export_save to save your session.', 'dim');
+  const saved=localStorage.getItem('ck_autosave'), savedTs=localStorage.getItem('ck_autosave_time');
+  if(saved&&savedTs){print(`Auto-save found (${new Date(parseInt(savedTs)).toLocaleString()}) — run load_autosave`,'dim');printEmpty();}
+  print("Type 'help' for commands. Tab-complete works. ↑↓ for history.",'dim');
   printEmpty();
-
-  input.focus();
-
-  // Start uptime ticker
-  setInterval(tickUptime, 1000);
+  inputEl.focus();
+  setInterval(tick,1000);
 }
-
-// ---- Start ----
 boot();
 </script>
-
 </body>
 </html>
