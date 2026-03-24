@@ -8,14 +8,16 @@
 <body>
   <div id="terminal">
     <div id="output"></div>
+
     <div id="input-line">
       <span id="prompt"></span>
-      <input id="input" autofocus autocomplete="off" />
+      <input id="input" autocomplete="off" autofocus />
     </div>
   </div>
 
   <div id="overlay" class="hidden"></div>
 
-  <script src="script.js"></script>
+  <!-- IMPORTANT: defer prevents early execution issues -->
+  <script src="script.js" defer></script>
 </body>
 </html>
