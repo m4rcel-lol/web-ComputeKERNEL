@@ -1,130 +1,249 @@
-/**
- * ComputeKERNEL Logic Core
- */
+const output = document.getElementById("output");
+const input = document.getElementById("input");
+const promptEl = document.getElementById("prompt");
+const overlay = document.getElementById("overlay");
 
-const output = document.getElementById('output');
-const input = document.getElementById('cmd-input');
-const promptLabel = document.getElementById('prompt');
-const fileImport = document.getElementById('file-import');
-
-// --- SYSTEM STATE ---
-let kernel = {
-    user: "user",
-    hostname: "computekernel",
-    cwd: "/home/user",
-    vfs: {
-        "/": { type: "dir", children: ["bin", "etc", "home", "tmp"] },
-        "/bin": { type: "dir", children: ["clear", "help"] },
-        "/etc": { type: "dir", children: ["os-release"] },
-        "/etc/os-release": { type: "file", content: "NAME=ComputeKERNEL\nID=web-kernel\nVERSION=1.0.2" },
-        "/home": { type: "dir", children: ["user"] },
-        "/home/user": { type: "dir", children: ["readme.txt"] },
-        "/home/user/readme.txt": { type: "file", content: "Welcome to the ComputeKERNEL browser terminal." }
-    }
+let state = {
+  user: "user",
+  host: "computekernel",
+  cwd: "/",
+  fs: {
+    "/": { type: "dir", children: {} }
+  },
+  history: []
 };
 
-// --- CORE UTILS ---
-const print = (text, type = "") => {
-    const div = document.createElement('div');
-    div.className = type;
-    div.textContent = text;
-    output.appendChild(div);
-    document.getElementById('terminal').scrollTop = document.getElementById('terminal').scrollHeight;
-};
+/* ---------------- UTIL ---------------- */
 
-const updatePrompt = () => {
-    promptLabel.textContent = `{${kernel.user}@${kernel.hostname}} #`;
-};
-
-// --- COMMAND HANDLERS ---
-const commands = {
-    help: () => "Commands: ls, cat, pwd, clear, whoami, export_save, import_save, mkdir, touch",
-    
-    whoami: () => kernel.user,
-
-    pwd: () => kernel.cwd,
-
-    clear: () => { output.innerHTML = ""; return ""; },
-
-    ls: () => {
-        const node = kernel.vfs[kernel.cwd];
-        return node.children.join("  ");
-    },
-
-    cat: (args) => {
-        const path = args[0].startsWith('/') ? args[0] : `${kernel.cwd}/${args[0]}`;
-        const file = kernel.vfs[path.replace(/\/$/, "")];
-        return (file && file.type === "file") ? file.content : `cat: ${args[0]}: No such file`;
-    },
-
-    export_save: () => {
-        const data = JSON.stringify(kernel);
-        const blob = new Blob([data], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = "system.ckernel";
-        a.click();
-        return "System snapshot saved to disk.";
-    },
-
-    import_save: () => {
-        fileImport.click();
-        return "Initializing import bridge...";
-    }
-};
-
-// --- SYSTEM INITIALIZATION ---
-async function boot() {
-    const bootSequence = [
-        "Starting ComputeKERNEL USB Boot...",
-        "CPU: WebAssembly Virtualized Instance @ 2.4GHz",
-        "Memory: 1024MB Virtual RAM Allocated",
-        "VFS: Mounting Root File System...",
-        "NET: Establishing socket bridge...",
-        "OK: System Ready.",
-        "--------------------------------------"
-    ];
-
-    for (const line of bootSequence) {
-        print(line, "boot-line");
-        await new Promise(r => setTimeout(r, 100));
-    }
-    updatePrompt();
+function updatePrompt() {
+  promptEl.textContent = `{${state.user}@${state.host}} ${state.cwd} #`;
 }
 
-// --- EVENT LISTENERS ---
-input.addEventListener('keydown', async (e) => {
-    if (e.key === 'Enter') {
-        const raw = input.value.trim();
-        const [cmd, ...args] = raw.split(' ');
-        
-        print(`${promptLabel.textContent} ${raw}`);
+function print(text = "") {
+  output.innerHTML += text + "\n";
+  output.scrollTop = output.scrollHeight;
+}
 
-        if (cmd && commands[cmd]) {
-            const res = await commands[cmd](args);
-            if (res) print(res);
-        } else if (cmd) {
-            print(`kernel: command not found: ${cmd}`);
-        }
+function pathResolve(path) {
+  if (!path) return state.cwd;
+  let parts = (path.startsWith("/") ? path : state.cwd + "/" + path).split("/");
+  let stack = [];
+  for (let p of parts) {
+    if (!p || p === ".") continue;
+    if (p === "..") stack.pop();
+    else stack.push(p);
+  }
+  return "/" + stack.join("/");
+}
 
-        input.value = "";
-    }
-});
+function getNode(path) {
+  let parts = path.split("/").filter(Boolean);
+  let node = state.fs["/"];
+  for (let p of parts) {
+    if (!node.children[p]) return null;
+    node = node.children[p];
+  }
+  return node;
+}
 
-fileImport.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    const reader = new FileReader();
-    reader.onload = (event) => {
-        try {
-            kernel = JSON.parse(event.target.result);
-            updatePrompt();
-            print(">>> System Restore Complete.", "boot-line");
-        } catch (err) {
-            print(">>> ERROR: Corrupt .ckernel file.", "boot-line");
-        }
+function getParent(path) {
+  let parts = path.split("/").filter(Boolean);
+  let name = parts.pop();
+  let parent = getNode("/" + parts.join("/"));
+  return { parent, name };
+}
+
+/* ---------------- FILE SYSTEM ---------------- */
+
+function mkdir(path) {
+  let full = pathResolve(path);
+  let { parent, name } = getParent(full);
+  if (!parent || parent.type !== "dir") return "Invalid path";
+  if (parent.children[name]) return "Already exists";
+  parent.children[name] = { type: "dir", children: {} };
+}
+
+function touch(path) {
+  let full = pathResolve(path);
+  let { parent, name } = getParent(full);
+  if (!parent) return "Invalid path";
+  parent.children[name] = { type: "file", content: "" };
+}
+
+function writeFile(path, content) {
+  let node = getNode(pathResolve(path));
+  if (!node || node.type !== "file") return "File not found";
+  node.content = content;
+}
+
+function remove(path) {
+  let full = pathResolve(path);
+  let { parent, name } = getParent(full);
+  if (!parent || !parent.children[name]) return "Not found";
+  delete parent.children[name];
+}
+
+/* ---------------- COMMANDS ---------------- */
+
+const commands = {
+  help() {
+    return `
+help clear whoami pwd ls cd cat echo mkdir touch rm write export_save import_save reboot shutdown
+    `;
+  },
+
+  clear() {
+    output.innerHTML = "";
+  },
+
+  whoami() {
+    return state.user;
+  },
+
+  pwd() {
+    return state.cwd;
+  },
+
+  ls() {
+    let dir = getNode(state.cwd);
+    return Object.entries(dir.children)
+      .map(([k, v]) => (v.type === "dir" ? `[${k}]` : k))
+      .join("  ");
+  },
+
+  cd(args) {
+    let newPath = pathResolve(args[0] || "/");
+    let node = getNode(newPath);
+    if (!node || node.type !== "dir") return "No such directory";
+    state.cwd = newPath;
+  },
+
+  cat(args) {
+    let node = getNode(pathResolve(args[0]));
+    if (!node || node.type !== "file") return "Not a file";
+    return node.content;
+  },
+
+  echo(args) {
+    return args.join(" ");
+  },
+
+  mkdir(args) {
+    return mkdir(args[0]);
+  },
+
+  touch(args) {
+    return touch(args[0]);
+  },
+
+  rm(args) {
+    return remove(args[0]);
+  },
+
+  write(args) {
+    let file = args[0];
+    let content = args.slice(1).join(" ");
+    return writeFile(file, content);
+  },
+
+  export_save() {
+    let data = JSON.stringify(state, null, 2);
+    let blob = new Blob([data], { type: "application/json" });
+    let a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "computekernel_save.json";
+    a.click();
+  },
+
+  import_save() {
+    let fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.onchange = e => {
+      let file = e.target.files[0];
+      let reader = new FileReader();
+      reader.onload = () => {
+        state = JSON.parse(reader.result);
+        updatePrompt();
+        print("Session restored.");
+        saveLocal();
+      };
+      reader.readAsText(file);
     };
-    reader.readAsText(file);
+    fileInput.click();
+  },
+
+  reboot() {
+    location.reload();
+  },
+
+  shutdown() {
+    overlay.classList.remove("hidden");
+    overlay.innerText = "System halted.";
+  }
+};
+
+/* ---------------- COMMAND HANDLER ---------------- */
+
+function runCommand(line) {
+  state.history.push(line);
+  let [cmd, ...args] = line.trim().split(" ");
+  if (!cmd) return;
+
+  if (!commands[cmd]) {
+    print("Command not found");
+    return;
+  }
+
+  let result = commands[cmd](args);
+  if (result) print(result);
+
+  updatePrompt();
+  saveLocal();
+}
+
+/* ---------------- STORAGE ---------------- */
+
+function saveLocal() {
+  localStorage.setItem("ckernel_save", JSON.stringify(state));
+}
+
+function loadLocal() {
+  let saved = localStorage.getItem("ckernel_save");
+  if (saved) state = JSON.parse(saved);
+}
+
+/* ---------------- BOOT ---------------- */
+
+async function boot() {
+  const bootLines = [
+    "Booting ComputeKERNEL...",
+    "[ OK ] Initializing system...",
+    "[ OK ] Loading kernel modules...",
+    "[ OK ] Mounting filesystem...",
+    "[ OK ] Starting services...",
+    "Welcome to ComputeKERNEL"
+  ];
+
+  for (let line of bootLines) {
+    print(line);
+    await new Promise(r => setTimeout(r, 400));
+  }
+}
+
+/* ---------------- INIT ---------------- */
+
+input.addEventListener("keydown", e => {
+  if (e.key === "Enter") {
+    print(`${promptEl.textContent} ${input.value}`);
+    runCommand(input.value);
+    input.value = "";
+  }
 });
 
-boot();
+async function init() {
+  loadLocal();
+  await boot();
+  updatePrompt();
+}
+
+init();
